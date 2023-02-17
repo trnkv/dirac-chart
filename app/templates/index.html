@@ -1,377 +1,147 @@
+{% load static %}
 <!DOCTYPE html>
 <html>
 
-    <head>
-        <title>Dirac Chart</title>
-        <meta charset="utf-8" />
-        <script src="https://code.jquery.com/jquery-3.6.3.js"
-            integrity="sha256-nQLuAZGRRcILA+6dMBOvcRh5Pe310sBpanc6+QBmyVM=" crossorigin="anonymous"></script>
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet"
-            integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD" crossorigin="anonymous">
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"
-            integrity="sha384-w76AqPfDkMBDXo30jS1Sgez6pr3x5MlQ1ZAGC+nuZB+EYdgRZgiwxhTBTkF7CXvN"
-            crossorigin="anonymous"></script>
-        <script src="https://code.highcharts.com/highcharts.js"></script>
-    </head>
+<head>
+  <title>Dirac Chart</title>
+  <meta charset="utf-8" />
+  <!-- JQuery 3.6.3 -->
+  <script src="https://code.jquery.com/jquery-3.6.3.js" integrity="sha256-nQLuAZGRRcILA+6dMBOvcRh5Pe310sBpanc6+QBmyVM=" crossorigin="anonymous"></script>
+  <!-- Pickle-JS (https://github.com/SkaceKamen/pickle-js) -->
+  <!-- <script src="{% static 'js/pickle.js' %}"></script> -->
+  <!-- jQuery-CSV -->
+  <script src="{% static 'js/jquery.csv.js' %}"></script>
+  <!-- PapaParse -->
+  <script src="{% static 'js/papaparse.js' %}"></script>
+  <!-- Bootstrap 5.3 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD" crossorigin="anonymous" />
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js" integrity="sha384-w76AqPfDkMBDXo30jS1Sgez6pr3x5MlQ1ZAGC+nuZB+EYdgRZgiwxhTBTkF7CXvN" crossorigin="anonymous"></script>
+  <!-- HighCharts -->
+  <script src="https://code.highcharts.com/highcharts.js"></script>
+  <!-- Custom functions -->
+  <script src="{% static 'js/custom/chartAllData.js' %}"></script>
+  <script src="{% static 'js/custom/secondsToDhms.js' %}"></script>
+  <script src="{% static 'js/custom/drawFilter.js' %}"></script>
+  <script src="{% static 'js/custom/drawHighChart.js' %}"></script>
+  <script src="{% static 'js/custom/getDataByFilters.js' %}"></script>
+</head>
 
-    <body>
-        {% comment %} <div id="preloader"></div> {% endcomment %}
-        <div class="container-fluid">
-            <div class="row">
-                <div class="col-3">
-                    <div id="site-selector" class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">Site selector</h5>
-                            <p class="card-text"></p>
-                            <div class="input-group-text"><input class="form-check-input mt-0" type="checkbox" value=""
-                                aria-label="Check all">Check all</div>
-                        </div>
-                    </div>
-                    <div id="user-selector" class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">User selector</h5>
-                            <p class="card-text"></p>
-                            <div class="input-group-text"><input class="form-check-input mt-0" type="checkbox" value=""
-                                aria-label="Check all">Check all</div>
-                        </div>
-                    </div>
-                    <div id="status-selector" class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">Status selector</h5>
-                            <p class="card-text"></p>
-                            <div class="input-group-text"><input class="form-check-input mt-0" type="checkbox" value=""
-                                aria-label="Check all">Check all</div>
-                        </div>
-                    </div>
-                    <div id="time-selector" class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">Time selector</h5>
-                            <p class="card-text"></p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col">
-                    <figure class="highcharts-figure">
-                        <div id="container"></div>
-                    </figure>
-                </div>
+<body>
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-3">
+        <div id="site-selector" class="card">
+          <div class="card-body">
+            <h5 class="card-title">Site selector</h5>
+            <p class="card-text"></p>
+            <div class="input-group-text">
+              <input class="form-check-input mt-0" type="checkbox" value="all" aria-label="Check all" />Check all
             </div>
+          </div>
         </div>
-    </body>
-    <script>
-        var DATA = undefined, filters = undefined;
+        <div id="user-selector" class="card">
+          <div class="card-body">
+            <h5 class="card-title">User selector</h5>
+            <p class="card-text"></p>
+            <div class="input-group-text">
+              <input class="form-check-input mt-0" type="checkbox" value="all" aria-label="Check all" />Check all
+            </div>
+          </div>
+        </div>
+        <div id="status-selector" class="card">
+          <div class="card-body">
+            <h5 class="card-title">Status selector</h5>
+            <p class="card-text"></p>
+            <div class="input-group-text">
+              <input class="form-check-input mt-0" type="checkbox" value="all" aria-label="Check all" />Check all
+            </div>
+          </div>
+        </div>
+        <div id="time-selector" class="card">
+          <div class="card-body">
+            <h5 class="card-title">Time selector</h5>
+            <p class="card-text"></p>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <img src="{% static 'img/preloader.gif' %}" id="preloader" />
+        <figure class="highcharts-figure">
+          <div id="highcharts-container"></div>
+        </figure>
+      </div>
+    </div>
+  </div>
+</body>
+<script>
+  let DATA = undefined,
+    FILTERS = [];
 
-        $.ajax({
-            url: "get_data"
-        }).done(function (data) {
-            {% comment %} $('#preloader').addClass("preloader-remove"); {% endcomment %}
-            DATA = data['data'];
-            filters = data['filters'];
+  $.ajax({
+    url: "get_filters",
+  }).done(function (response) {
+    $("#preloader").css("display", "none");
+    let filters = response['filters'];
 
-            filters['sites'].forEach(site => {
-                $("#site-selector p").append(`<button class="btn btn-sm">${site}</button>`);
-            })
-            filters['users'].forEach(user => {
-                $("#user-selector p").append(`<button class="btn btn-sm">${user}</button>`);
-            })
-            filters['statuses'].forEach(status => {
-                $("#status-selector p").append(`<button class="btn btn-sm">${status}</button>`);
-            })
-            drawHighChart();
+    filters['sites'].forEach(site => {
+      drawFilter("#site-selector p", `site_${site}`, site);
+    });
+    filters['users'].forEach(user => {
+      drawFilter("#user-selector p", `user_${user}`, user);
+    });
+    filters['statuses'].forEach(status => {
+      drawFilter("#status-selector p", `status_${status}`, status);
+    });
+
+    $("#site-selector p input, #user-selector p input, #status-selector p input").on('change', function () {
+      let value = $(this).val();
+      if ($(this).is(':checked')) FILTERS.push(value);
+      else FILTERS.splice(FILTERS.indexOf(value), 1);
+      getDataByFilters(FILTERS);
+    });
+
+    $("#site-selector input[value='all']").click(function () {
+      $('#site-selector input:checkbox').not(this).prop('checked', this.checked);
+      if ($(this).is(':checked')) {
+        $("#site-selector input:checkbox[value!='all']").each(function () {
+          FILTERS.push($(this).val());
         });
+      }
+      else
+        $("#site-selector input:checkbox[value!='all']").each(function () {
+          FILTERS.splice(FILTERS.indexOf($(this)), 1);
+        });
+        getDataByFilters(FILTERS);
+    });
 
-        function drawHighChart(){
-            Highcharts.getJSON(
-                'https://cdn.jsdelivr.net/gh/highcharts/highcharts@v7.0.0/samples/data/usdeur.json',
-                data => {
-                    let detailChart;
+    $("#user-selector input[value='all']").click(function () {
+      $('#user-selector input:checkbox').not(this).prop('checked', this.checked);
+      if ($(this).is(':checked')) {
+        $("#user-selector input:checkbox[value!='all']").each(function () {
+          FILTERS.push($(this).val());
+        });
+      }
+      else
+        $("#user-selector input:checkbox[value!='all']").each(function () {
+          FILTERS.splice(FILTERS.indexOf($(this)), 1);
+        });
+        getDataByFilters(FILTERS);
+    });
 
-                    // create the detail chart
-                    function createDetail(masterChart) {
-                        // prepare the detail chart
-                        var detailData = [],
-                        detailStart = data[0][0];
-
-                        masterChart.series[0].data.forEach(point => {
-                            if (point.x >= detailStart) {
-                                detailData.push(point.y);
-                            }
-                        });
-
-                        // create a detail chart referenced by a global variable
-                        detailChart = Highcharts.chart('detail-container', {
-                            chart: {
-                                marginBottom: 120,
-                                reflow: false,
-                                marginLeft: 50,
-                                marginRight: 20,
-                                style: {
-                                    position: 'absolute'
-                                }
-                            },
-                            credits: {
-                                enabled: false
-                            },
-                            title: {
-                                text: 'Historical USD to EUR Exchange Rate',
-                                align: 'left'
-                            },
-                            subtitle: {
-                                text: 'Select an area by dragging across the lower chart',
-                                align: 'left'
-                            },
-                            xAxis: {
-                                type: 'datetime'
-                            },
-                            yAxis: {
-                                title: {
-                                    text: null
-                                },
-                                maxZoom: 0.1
-                            },
-                            tooltip: {
-                                formatter: function () {
-                                    var point = this.points[0];
-                                    return '<b>' + point.series.name + '</b><br/>' + Highcharts.dateFormat('%A %B %e %Y', this.x) + ':<br/>' +
-                                    '1 USD = ' + Highcharts.numberFormat(point.y, 2) + ' EUR';
-                                },
-                                shared: true
-                            },
-                            legend: {
-                                enabled: false
-                            },
-                            plotOptions: {
-                                series: {
-                                    marker: {
-                                        enabled: false,
-                                        states: {
-                                            hover: {
-                                                enabled: true,
-                                                radius: 3
-                                            }
-                                        }
-                                    }
-                                }
-                            },
-                            series: [{
-                                name: 'USD to EUR',
-                                pointStart: detailStart,
-                                pointInterval: 24 * 3600 * 1000,
-                                data: detailData
-                            }],
-
-                            exporting: {
-                                enabled: false
-                            }
-
-                        }); // return chart
-                    }
-
-                    // create the master chart
-                    function createMaster() {
-                        Highcharts.chart('master-container', {
-                            chart: {
-                                reflow: false,
-                                borderWidth: 0,
-                                backgroundColor: null,
-                                marginLeft: 50,
-                                marginRight: 20,
-                                zoomType: 'x',
-                                events: {
-
-                                    // listen to the selection event on the master chart to update the
-                                    // extremes of the detail chart
-                                    selection: function (event) {
-                                        var extremesObject = event.xAxis[0],
-                                        min = extremesObject.min,
-                                        max = extremesObject.max,
-                                        detailData = [],
-                                        xAxis = this.xAxis[0];
-
-                                        // reverse engineer the last part of the data
-                                        this.series[0].data.forEach(point => {
-                                            if (point.x > min && point.x < max) {
-                                                detailData.push([point.x, point.y]);
-                                            }
-                                        });
-
-                                        // move the plot bands to reflect the new detail span
-                                        xAxis.removePlotBand('mask-before');
-                                        xAxis.addPlotBand({
-                                            id: 'mask-before',
-                                            from: data[0][0],
-                                            to: min,
-                                            color: 'rgba(0, 0, 0, 0.2)'
-                                        });
-
-                                        xAxis.removePlotBand('mask-after');
-                                        xAxis.addPlotBand({
-                                            id: 'mask-after',
-                                            from: max,
-                                            to: data[data.length - 1][0],
-                                            color: 'rgba(0, 0, 0, 0.2)'
-                                        });
-
-
-                                        detailChart.series[0].setData(detailData);
-
-                                        return false;
-                                    }
-                                }
-                            },
-                            title: {
-                                text: null
-                            },
-                            accessibility: {
-                                enabled: false
-                            },
-                            xAxis: {
-                                type: 'datetime',
-                                showLastTickLabel: true,
-                                maxZoom: 14 * 24 * 3600000, // fourteen days
-                                plotBands: [{
-                                    id: 'mask-before',
-                                    from: data[0][0],
-                                    to: data[data.length - 1][0],
-                                    color: 'rgba(0, 0, 0, 0.2)'
-                                }],
-                                title: {
-                                    text: null
-                                }
-                            },
-                            yAxis: {
-                                gridLineWidth: 0,
-                                labels: {
-                                    enabled: false
-                                },
-                                title: {
-                                    text: null
-                                },
-                                min: 0.6,
-                                showFirstLabel: false
-                            },
-                            tooltip: {
-                                formatter: function () {
-                                    return false;
-                                }
-                            },
-                            legend: {
-                                enabled: false
-                            },
-                            credits: {
-                                enabled: false
-                            },
-                            plotOptions: {
-                                series: {
-                                    fillColor: {
-                                        linearGradient: [0, 0, 0, 70],
-                                        stops: [
-                                            [0, Highcharts.getOptions().colors[0]],
-                                            [1, 'rgba(255,255,255,0)']
-                                        ]
-                                    },
-                                    lineWidth: 1,
-                                    marker: {
-                                        enabled: false
-                                    },
-                                    shadow: false,
-                                    states: {
-                                        hover: {
-                                            lineWidth: 1
-                                        }
-                                    },
-                                    enableMouseTracking: false
-                                }
-                            },
-
-                            series: [{
-                                type: 'area',
-                                name: 'USD to EUR',
-                                pointInterval: 24 * 3600 * 1000,
-                                pointStart: data[0][0],
-                                data: data
-                            }],
-
-                            exporting: {
-                                enabled: false
-                            }
-
-                        }, masterChart => {
-                            createDetail(masterChart);
-                        }); // return chart instance
-                    }
-
-                    // make the container smaller and add a second container for the master chart
-                    const container = document.getElementById('container');
-                    container.style.position = 'relative';
-                    container.innerHTML += '<div id="detail-container"></div><div id="master-container"></div>';
-
-                    // create master and in its callback, create the detail chart
-                    createMaster();
-                }
-            );
-        }
-    </script>
-    <style>
-        #preloader {
-            position: fixed;
-            left: 0px;
-            top: 0px;
-            width: 100%;
-            height: 100%;
-            z-index: 999999;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #fff;
-            transition: all 0.5s;
-            opacity: 1;
-            border-radius: 50%;
-            border: 3px solid transparent;
-            border-top-color: #337AB7;
-            animation: preloader-5-spin 2s linear infinite;
-        }
-
-        #preloader:before {
-            content: "";
-            position: absolute;
-            top: 5px;
-            left: 5px;
-            right: 5px;
-            bottom: 5px;
-            border-radius: 50%;
-            border: 3px solid transparent;
-            border-top-color: #BFE2FF;
-            animation: preloader-5-spin 3s linear infinite;
-        }
-
-        #preloader:after {
-            content: "";
-            position: absolute;
-            top: 15px;
-            left: 15px;
-            right: 15px;
-            bottom: 15px;
-            border-radius: 50%;
-            border: 3px solid transparent;
-            border-top-color: #337AB7;
-            animation: preloader-5-spin 1.5s linear infinite;
-        }
-
-        .preloader-remove {
-            opacity: 0;
-            z-index: -10;
-        }
-
-        @keyframes preloader-spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
-        }
-    </style>
+    $("#status-selector input[value='all']").click(function () {
+      $('#status-selector input:checkbox').not(this).prop('checked', this.checked);
+      if ($(this).is(':checked')) {
+        $("#status-selector input:checkbox[value!='all']").each(function () {
+          FILTERS.push($(this).val());
+        });
+      }
+      else
+        $("#status-selector input:checkbox[value!='all']").each(function () {
+          FILTERS.splice(FILTERS.indexOf($(this)), 1);
+        });
+        getDataByFilters(FILTERS);
+    });
+  })
+</script>
 
 </html>

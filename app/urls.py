@@ -5,5 +5,6 @@ app_name = 'app'
 
 urlpatterns = [
     path('', views.index, name='index'),
-    path('get_data', views.get_data, name='get_data'),
+    path('get_filters', views.get_filters, name='get_filters'),
+    path('get_data_by_filters', views.get_data_by_filters, name='get_data_by_filters'),
 ]
