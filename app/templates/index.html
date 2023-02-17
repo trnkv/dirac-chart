@@ -1,0 +1,147 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Dirac Chart</title>
+  <meta charset="utf-8" />
+  <!-- JQuery 3.6.3 -->
+  <script src="https://code.jquery.com/jquery-3.6.3.js" integrity="sha256-nQLuAZGRRcILA+6dMBOvcRh5Pe310sBpanc6+QBmyVM=" crossorigin="anonymous"></script>
+  <!-- Pickle-JS (https://github.com/SkaceKamen/pickle-js) -->
+  <!-- <script src="{% static 'js/pickle.js' %}"></script> -->
+  <!-- jQuery-CSV -->
+  <script src="{% static 'js/jquery.csv.js' %}"></script>
+  <!-- PapaParse -->
+  <script src="{% static 'js/papaparse.js' %}"></script>
+  <!-- Bootstrap 5.3 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD" crossorigin="anonymous" />
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js" integrity="sha384-w76AqPfDkMBDXo30jS1Sgez6pr3x5MlQ1ZAGC+nuZB+EYdgRZgiwxhTBTkF7CXvN" crossorigin="anonymous"></script>
+  <!-- HighCharts -->
+  <script src="https://code.highcharts.com/highcharts.js"></script>
+  <!-- Custom functions -->
+  <script src="{% static 'js/custom/chartAllData.js' %}"></script>
+  <script src="{% static 'js/custom/secondsToDhms.js' %}"></script>
+  <script src="{% static 'js/custom/drawFilter.js' %}"></script>
+  <script src="{% static 'js/custom/drawHighChart.js' %}"></script>
+  <script src="{% static 'js/custom/getDataByFilters.js' %}"></script>
+</head>
+
+<body>
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-3">
+        <div id="site-selector" class="card">
+          <div class="card-body">
+            <h5 class="card-title">Site selector</h5>
+            <p class="card-text"></p>
+            <div class="input-group-text">
+              <input class="form-check-input mt-0" type="checkbox" value="all" aria-label="Check all" />Check all
+            </div>
+          </div>
+        </div>
+        <div id="user-selector" class="card">
+          <div class="card-body">
+            <h5 class="card-title">User selector</h5>
+            <p class="card-text"></p>
+            <div class="input-group-text">
+              <input class="form-check-input mt-0" type="checkbox" value="all" aria-label="Check all" />Check all
+            </div>
+          </div>
+        </div>
+        <div id="status-selector" class="card">
+          <div class="card-body">
+            <h5 class="card-title">Status selector</h5>
+            <p class="card-text"></p>
+            <div class="input-group-text">
+              <input class="form-check-input mt-0" type="checkbox" value="all" aria-label="Check all" />Check all
+            </div>
+          </div>
+        </div>
+        <div id="time-selector" class="card">
+          <div class="card-body">
+            <h5 class="card-title">Time selector</h5>
+            <p class="card-text"></p>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <img src="{% static 'img/preloader.gif' %}" id="preloader" />
+        <figure class="highcharts-figure">
+          <div id="highcharts-container"></div>
+        </figure>
+      </div>
+    </div>
+  </div>
+</body>
+<script>
+  let DATA = undefined,
+    FILTERS = [];
+
+  $.ajax({
+    url: "get_filters",
+  }).done(function (response) {
+    $("#preloader").css("display", "none");
+    let filters = response['filters'];
+
+    filters['sites'].forEach(site => {
+      drawFilter("#site-selector p", `site_${site}`, site);
+    });
+    filters['users'].forEach(user => {
+      drawFilter("#user-selector p", `user_${user}`, user);
+    });
+    filters['statuses'].forEach(status => {
+      drawFilter("#status-selector p", `status_${status}`, status);
+    });
+
+    $("#site-selector p input, #user-selector p input, #status-selector p input").on('change', function () {
+      let value = $(this).val();
+      if ($(this).is(':checked')) FILTERS.push(value);
+      else FILTERS.splice(FILTERS.indexOf(value), 1);
+      getDataByFilters(FILTERS);
+    });
+
+    $("#site-selector input[value='all']").click(function () {
+      $('#site-selector input:checkbox').not(this).prop('checked', this.checked);
+      if ($(this).is(':checked')) {
+        $("#site-selector input:checkbox[value!='all']").each(function () {
+          FILTERS.push($(this).val());
+        });
+      }
+      else
+        $("#site-selector input:checkbox[value!='all']").each(function () {
+          FILTERS.splice(FILTERS.indexOf($(this)), 1);
+        });
+        getDataByFilters(FILTERS);
+    });
+
+    $("#user-selector input[value='all']").click(function () {
+      $('#user-selector input:checkbox').not(this).prop('checked', this.checked);
+      if ($(this).is(':checked')) {
+        $("#user-selector input:checkbox[value!='all']").each(function () {
+          FILTERS.push($(this).val());
+        });
+      }
+      else
+        $("#user-selector input:checkbox[value!='all']").each(function () {
+          FILTERS.splice(FILTERS.indexOf($(this)), 1);
+        });
+        getDataByFilters(FILTERS);
+    });
+
+    $("#status-selector input[value='all']").click(function () {
+      $('#status-selector input:checkbox').not(this).prop('checked', this.checked);
+      if ($(this).is(':checked')) {
+        $("#status-selector input:checkbox[value!='all']").each(function () {
+          FILTERS.push($(this).val());
+        });
+      }
+      else
+        $("#status-selector input:checkbox[value!='all']").each(function () {
+          FILTERS.splice(FILTERS.indexOf($(this)), 1);
+        });
+        getDataByFilters(FILTERS);
+    });
+  })
+</script>
+
+</html>
