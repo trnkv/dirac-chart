@@ -3,145 +3,311 @@
 <html>
 
 <head>
-  <title>Dirac Chart</title>
-  <meta charset="utf-8" />
-  <!-- JQuery 3.6.3 -->
-  <script src="https://code.jquery.com/jquery-3.6.3.js" integrity="sha256-nQLuAZGRRcILA+6dMBOvcRh5Pe310sBpanc6+QBmyVM=" crossorigin="anonymous"></script>
-  <!-- Pickle-JS (https://github.com/SkaceKamen/pickle-js) -->
-  <!-- <script src="{% static 'js/pickle.js' %}"></script> -->
-  <!-- jQuery-CSV -->
-  <script src="{% static 'js/jquery.csv.js' %}"></script>
-  <!-- PapaParse -->
-  <script src="{% static 'js/papaparse.js' %}"></script>
-  <!-- Bootstrap 5.3 -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD" crossorigin="anonymous" />
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js" integrity="sha384-w76AqPfDkMBDXo30jS1Sgez6pr3x5MlQ1ZAGC+nuZB+EYdgRZgiwxhTBTkF7CXvN" crossorigin="anonymous"></script>
-  <!-- HighCharts -->
-  <script src="https://code.highcharts.com/highcharts.js"></script>
-  <!-- Custom functions -->
-  <script src="{% static 'js/custom/chartAllData.js' %}"></script>
-  <script src="{% static 'js/custom/secondsToDhms.js' %}"></script>
-  <script src="{% static 'js/custom/drawFilter.js' %}"></script>
-  <script src="{% static 'js/custom/drawHighChart.js' %}"></script>
-  <script src="{% static 'js/custom/getDataByFilters.js' %}"></script>
+    <title>Dirac Chart</title>
+    <meta charset="utf-8" />
+    <!-- JQuery 3.6.3 -->
+    <script src="https://code.jquery.com/jquery-3.6.3.js" integrity="sha256-nQLuAZGRRcILA+6dMBOvcRh5Pe310sBpanc6+QBmyVM=" crossorigin="anonymous"></script>
+    <!-- Moment JS -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+    <!-- PapaParse -->
+    <script src="{% static 'js/papaparse.js' %}"></script>
+    <!-- Bootstrap 5.3 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD" crossorigin="anonymous" />
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js" integrity="sha384-w76AqPfDkMBDXo30jS1Sgez6pr3x5MlQ1ZAGC+nuZB+EYdgRZgiwxhTBTkF7CXvN" crossorigin="anonymous"></script>
+    <!-- FontAwesome -->
+    <link href="{% static 'js/fontawesome-free-6.3.0-web/css/all.min.css' %}" rel="stylesheet" />
+    <!-- DateRangePicker -->
+    <link href="{% static 'js/daterangepicker/daterangepicker.css' %}" rel="stylesheet" />
+    <script src="{% static 'js/daterangepicker/daterangepicker.js' %}"></script>
+    <!-- HighCharts -->
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <!-- Custom functions -->
+    <script src="{% static 'js/custom/DateRangePicker.js' %}"></script>
+    <script src="{% static 'js/custom/chartAllData.js' %}"></script>
+    <script src="{% static 'js/custom/secondsToDhms.js' %}"></script>
+    <script src="{% static 'js/custom/drawFilter.js' %}"></script>
+    <script src="{% static 'js/custom/drawHighChart.js' %}"></script>
+    <script src="{% static 'js/custom/getDataByFilters.js' %}"></script>
 </head>
 
 <body>
-  <div class="container-fluid">
-    <div class="row">
-      <div class="col-3">
-        <div id="site-selector" class="card">
-          <div class="card-body">
-            <h5 class="card-title">Site selector</h5>
-            <p class="card-text"></p>
-            <div class="input-group-text">
-              <input class="form-check-input mt-0" type="checkbox" value="all" aria-label="Check all" />Check all
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-3">
+                <button class="btn btn-primary" id="btn_show_chart" style="display: none">Show</button>
+                <div id="time-selector" class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Time selector</h5>
+                        <div id="reportrange" class="input-group-text">
+                            <i class="fa fa-calendar"></i><span></span> <i class="fa fa-caret-down"></i>
+                        </div>
+                    </div>
+                </div>
+                <div id="site-selector" class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Site selector</h5>
+                        <p class="card-text"></p>
+                        <div class="input-group-text">
+                            <input class="form-check-input mt-0" type="checkbox" value="all" aria-label="Check all" />Check all
+                        </div>
+                    </div>
+                </div>
+                <div id="user-selector" class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">User selector</h5>
+                        <p class="card-text"></p>
+                        <div class="input-group-text">
+                            <input class="form-check-input mt-0" type="checkbox" value="all" aria-label="Check all" />Check all
+                        </div>
+                    </div>
+                </div>
+                <div id="status-selector" class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Status selector</h5>
+                        <p class="card-text"></p>
+                        <div class="input-group-text">
+                            <input class="form-check-input mt-0" type="checkbox" value="all" aria-label="Check all" />Check all
+                        </div>
+                    </div>
+                </div>
             </div>
-          </div>
-        </div>
-        <div id="user-selector" class="card">
-          <div class="card-body">
-            <h5 class="card-title">User selector</h5>
-            <p class="card-text"></p>
-            <div class="input-group-text">
-              <input class="form-check-input mt-0" type="checkbox" value="all" aria-label="Check all" />Check all
+            <div class="col">
+                <div class="row">
+                    <div class="col">
+                        <div class="input-group mb-3">
+                            <label class="input-group-text" for="select_marker_size">
+                                <i class="fa-solid fa-paintbrush"></i>
+                            </label>
+                            <select id="select_color_filter" class="form-select" disabled>
+                                <option selected disabled value="default">Choose color filter...</option>
+                                <option value="site">SITE</option>
+                                <option value="user">USER</option>
+                                <option value="status">STATUS</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="input-group mb-3">
+                            <label class="input-group-text" for="select_marker_size">
+                                <i class="fa-solid fa-circle-dot"></i>
+                            </label>
+                            <select id="select_marker_size" class="form-select" disabled>
+                                <option selected disabled value="default">Choose marker size...</option>
+                                <option value="1">Marker size: 1</option>
+                                <option value="5">Marker size: 5</option>
+                                <option value="10">Marker size: 10</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <h1 id="data_loading_preloader"></h1>
+                <figure class="highcharts-figure">
+                    <div id="highcharts-container" style="position: relative;"></div>
+                </figure>
             </div>
-          </div>
         </div>
-        <div id="status-selector" class="card">
-          <div class="card-body">
-            <h5 class="card-title">Status selector</h5>
-            <p class="card-text"></p>
-            <div class="input-group-text">
-              <input class="form-check-input mt-0" type="checkbox" value="all" aria-label="Check all" />Check all
-            </div>
-          </div>
-        </div>
-        <div id="time-selector" class="card">
-          <div class="card-body">
-            <h5 class="card-title">Time selector</h5>
-            <p class="card-text"></p>
-          </div>
-        </div>
-      </div>
-      <div class="col">
-        <img src="{% static 'img/preloader.gif' %}" id="preloader" />
-        <figure class="highcharts-figure">
-          <div id="highcharts-container"></div>
-        </figure>
-      </div>
     </div>
-  </div>
 </body>
 <script>
-  let DATA = undefined,
-    FILTERS = [];
+    let DATA = undefined,
+        FILTERS = [],
+        START_TIME, // for daterangepicker
+        END_TIME, // for daterangepicker
+        dt_format = 'YYYY-MM-DD HH:mm:ss',
+        tooltip;
 
-  $.ajax({
-    url: "get_filters",
-  }).done(function (response) {
-    $("#preloader").css("display", "none");
-    let filters = response['filters'];
+    $.ajax({
+        url: "get_filters",
+    }).done(function(response) {
+        $("#data_loading_preloader").css("display", "none");
+        let filters = response["filters"];
 
-    filters['sites'].forEach(site => {
-      drawFilter("#site-selector p", `site_${site}`, site);
-    });
-    filters['users'].forEach(user => {
-      drawFilter("#user-selector p", `user_${user}`, user);
-    });
-    filters['statuses'].forEach(status => {
-      drawFilter("#status-selector p", `status_${status}`, status);
-    });
+        filters["sites"].forEach((site) => {
+            drawFilter("#site-selector p", `site_${site}`, site);
+        });
+        filters["users"].forEach((user) => {
+            drawFilter("#user-selector p", `user_${user}`, user);
+        });
+        filters["statuses"].forEach((status) => {
+            drawFilter("#status-selector p", `status_${status}`, status);
+        });
 
-    $("#site-selector p input, #user-selector p input, #status-selector p input").on('change', function () {
-      let value = $(this).val();
-      if ($(this).is(':checked')) FILTERS.push(value);
-      else FILTERS.splice(FILTERS.indexOf(value), 1);
-      getDataByFilters(FILTERS);
-    });
+        // daterangepicker
+        var start_end = createDateRangePicker();
+        START_TIME = start_end[0].format(dt_format);
+        END_TIME = start_end[1].format(dt_format);
+        console.log(START_TIME, END_TIME);
+        $('#reportrange').on('apply.daterangepicker', function(ev, picker) {
+            console.log(picker);
+            START_TIME = picker.startDate.format(dt_format);
+            END_TIME = picker.endDate.format(dt_format);
+        });
 
-    $("#site-selector input[value='all']").click(function () {
-      $('#site-selector input:checkbox').not(this).prop('checked', this.checked);
-      if ($(this).is(':checked')) {
-        $("#site-selector input:checkbox[value!='all']").each(function () {
-          FILTERS.push($(this).val());
+        $("#site-selector p input:checkbox, #user-selector p input:checkbox, #status-selector p input:checkbox").on("change", function() {
+            let value = $(this).val();
+            if ($(this).is(":checked")) FILTERS.push(value);
+            else FILTERS.splice(FILTERS.indexOf(value), 1);
+            tooltip = new bootstrap.Tooltip($(this), {
+                template: '<div class="tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner bg-primary"></div></div>',
+                html: true,
+                title: $("#btn_show_chart"),
+                trigger: "click manual",
+            });
+            $("#btn_show_chart").css("display", "block");
+            tooltip.show();
         });
-      }
-      else
-        $("#site-selector input:checkbox[value!='all']").each(function () {
-          FILTERS.splice(FILTERS.indexOf($(this)), 1);
-        });
-        getDataByFilters(FILTERS);
-    });
 
-    $("#user-selector input[value='all']").click(function () {
-      $('#user-selector input:checkbox').not(this).prop('checked', this.checked);
-      if ($(this).is(':checked')) {
-        $("#user-selector input:checkbox[value!='all']").each(function () {
-          FILTERS.push($(this).val());
+        $("#select_color_filter").on('change', function() {
+            drawHighChart(DATA, $(this).val());
         });
-      }
-      else
-        $("#user-selector input:checkbox[value!='all']").each(function () {
-          FILTERS.splice(FILTERS.indexOf($(this)), 1);
-        });
-        getDataByFilters(FILTERS);
-    });
 
-    $("#status-selector input[value='all']").click(function () {
-      $('#status-selector input:checkbox').not(this).prop('checked', this.checked);
-      if ($(this).is(':checked')) {
-        $("#status-selector input:checkbox[value!='all']").each(function () {
-          FILTERS.push($(this).val());
+        $("#select_marker_size").on('change', function() {
+            detailChart.series[0].update({
+                marker: {
+                    radius: Number($(this).val())
+                }
+            });
         });
-      }
-      else
-        $("#status-selector input:checkbox[value!='all']").each(function () {
-          FILTERS.splice(FILTERS.indexOf($(this)), 1);
+
+        // button for chart building
+        $("#btn_show_chart").on("click", function() {
+            $('#select_color_filter, #select_marker_size').prop("disabled", true);
+            $('#select_color_filter option[value="default"]').prop("selected", true);
+            if (
+                FILTERS.length > 1 &&
+                FILTERS.some(
+                    (v) => v.includes("site") && FILTERS.some((v) => v.includes("user"))
+                )
+            )
+                getDataByFilters(FILTERS, START_TIME, END_TIME, "status");
+            else if (
+                FILTERS.length > 0 &&
+                FILTERS.every(function(item) {
+                    return item.includes("site");
+                })
+            )
+                getDataByFilters(FILTERS, START_TIME, END_TIME, "user");
+            else if (FILTERS.length > 0) getDataByFilters(FILTERS, START_TIME, END_TIME);
         });
-        getDataByFilters(FILTERS);
+
+        $("#site-selector input[value='all']").click(function() {
+            $("#site-selector input:checkbox")
+                .not(this)
+                .prop("checked", this.checked);
+            if ($(this).is(":checked")) {
+                $("#site-selector input:checkbox[value!='all']").each(function() {
+                    FILTERS.push($(this).val());
+                });
+            } else
+                $("#site-selector input:checkbox[value!='all']").each(function() {
+                    FILTERS.splice(FILTERS.indexOf($(this)), 1);
+                });
+            getDataByFilters(FILTERS, START_TIME, END_TIME);
+        });
+
+        $("#user-selector input[value='all']").click(function() {
+            $("#user-selector input:checkbox")
+                .not(this)
+                .prop("checked", this.checked);
+            if ($(this).is(":checked")) {
+                $("#user-selector input:checkbox[value!='all']").each(function() {
+                    FILTERS.push($(this).val());
+                });
+            } else
+                $("#user-selector input:checkbox[value!='all']").each(function() {
+                    FILTERS.splice(FILTERS.indexOf($(this)), 1);
+                });
+            getDataByFilters(FILTERS, START_TIME, END_TIME);
+        });
+
+        $("#status-selector input[value='all']").click(function() {
+            $("#status-selector input:checkbox")
+                .not(this)
+                .prop("checked", this.checked);
+            if ($(this).is(":checked")) {
+                $("#status-selector input:checkbox[value!='all']").each(function() {
+                    FILTERS.push($(this).val());
+                });
+            } else
+                $("#status-selector input:checkbox[value!='all']").each(function() {
+                    FILTERS.splice(FILTERS.indexOf($(this)), 1);
+                });
+            getDataByFilters(FILTERS, START_TIME, END_TIME);
+        });
     });
-  })
 </script>
+<style>
+    #data_loading_preloader {
+        display: block;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        height: 100px;
+        width: 100px;
+        margin: -25px 0 0 -25px;
+        border: 4px rgba(0, 0, 0, 0.25) solid;
+        border-top: 4px black solid;
+        border-bottom: 4px black solid;
+        border-radius: 50%;
+        -webkit-animation: spin1 0.7s infinite linear;
+        animation: spin1 0.7s infinite linear;
+    }
+    
+    @-webkit-keyframes spin1 {
+        from {
+            -webkit-transform: rotate(0deg);
+            transform: rotate(0deg);
+        }
+        to {
+            -webkit-transform: rotate(359deg);
+            transform: rotate(359deg);
+        }
+    }
+    
+    @keyframes spin1 {
+        from {
+            -webkit-transform: rotate(0deg);
+            transform: rotate(0deg);
+            -webkit-transform: rotate(0deg);
+            transform: rotate(0deg);
+        }
+        to {
+            -webkit-transform: rotate(359deg);
+            transform: rotate(359deg);
+            -webkit-transform: rotate(359deg);
+            transform: rotate(359deg);
+        }
+    }
+    
+    #reportrange {
+        background: #fff;
+        cursor: pointer;
+        border: 1px solid #ccc;
+        width: 100%;
+        white-space: break-spaces;
+    }
+    
+    #reportrange>span {
+        padding: 5px;
+    }
+    
+    .daterangepicker {
+        position: absolute;
+        z-index: 100;
+        background-color: #fff;
+    }
+    
+    #detail-container,
+    #master-container {
+        position: absolute;
+        overflow: unset !important;
+        width: 100%;
+    }
+    
+    #master-container {
+        top: 500px;
+        height: 100px;
+    }
+</style>
 
 </html>

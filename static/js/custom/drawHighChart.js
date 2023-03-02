@@ -1,251 +1,351 @@
+var masterChart, detailChart;
+
 function drawHighChart(data, filter) {
-  let detailChart,
-    DATA = [];
+    let PREPARED_DATA = [];
 
-  function prepareData() {
-    if (filter === undefined) filter = "site";
-    data.forEach((obj) => {
-      for (var i = 0; i < DATA.length; i++) {
-        if (DATA[i].name == obj[filter]) {
-          DATA[i].data.push({
-            x: obj.cpu_norm,
-            y: obj.wall_time,
-            wall_time: secondsToDhms(obj.wall_time),
-            time: obj._time,
-            site: obj.site,
-            user: obj.user,
-            job_id: obj.job_id,
-            hostname: obj.hostname,
-            model: obj.model,
-            status: obj.status,
-          });
-          return;
-        }
-      }
-      DATA.push({
-        name: obj[filter],
-        data: [
-          {
-            x: obj.cpu_norm,
-            y: obj.wall_time,
-            wall_time: secondsToDhms(obj.wall_time),
-            time: obj._time,
-            site: obj.site,
-            user: obj.user,
-            cpu_norm: obj.cpu_norm,
-            job_id: obj.job_id,
-            hostname: obj.hostname,
-            model: obj.model,
-            status: obj.status,
-          },
-        ],
-      });
-    });
-    return DATA;
-  }
+    function prepareData() {
+        if (filter === undefined) filter = "site";
+        data.forEach((obj) => {
+            for (var i = 0; i < PREPARED_DATA.length; i++) {
+                if (PREPARED_DATA[i].name == obj[filter]) {
+                    PREPARED_DATA[i].data.push({
+                        x: obj.cpu_norm,
+                        y: obj.wall_time,
+                        wall_time: secondsToDhms(obj.wall_time),
+                        _time: obj._time,
+                        site: obj.site,
+                        user: obj.user,
+                        job_id: obj.job_id,
+                        hostname: obj.hostname,
+                        model: obj.model,
+                        status: obj.status,
+                    });
+                    return;
+                }
+            }
+            PREPARED_DATA.push({
+                name: obj[filter],
+                data: [{
+                    x: obj.cpu_norm,
+                    y: obj.wall_time,
+                    wall_time: secondsToDhms(obj.wall_time),
+                    _time: obj._time,
+                    site: obj.site,
+                    user: obj.user,
+                    cpu_norm: obj.cpu_norm,
+                    job_id: obj.job_id,
+                    hostname: obj.hostname,
+                    model: obj.model,
+                    status: obj.status,
+                }, ],
+            });
+        });
+        return PREPARED_DATA;
+    }
 
-  // create the detail chart
-  function createDetail(masterChart) {
-    // prepare the detail chart
-    var detailData = [],
-      detailStart = data[0]["_time"];
+    // create the detail chart
+    function createDetail(masterChart) {
+        // prepare the detail chart
+        var detailData = [],
+            detailStart = data[0]["_time"];
+        masterChart.series[0].data.forEach((point) => {
+            if (point.x >= detailStart) {
+                data.forEach(obj => {
+                    if (obj['_time'] >= point.x)
+                        detailData.push({
+                            x: obj.cpu_norm,
+                            y: obj.wall_time,
+                            wall_time: obj.wall_time,
+                            time: new Date(obj._time),
+                            site: obj.site,
+                            user: obj.user,
+                            cpu_norm: obj.cpu_norm,
+                            job_id: obj.job_id,
+                            hostname: obj.hostname,
+                            model: obj.model,
+                            status: obj.status,
+                        });
+                });
+            }
+        });
 
-    masterChart.series[0].data.forEach((point) => {
-      console.log(point);
-      if (point.x >= detailStart) {
-        detailData.push(point.y);
-      }
-    });
-
-    // create a detail chart referenced by a global variable
-    detailChart = Highcharts.chart("detail-container", {
-      chart: {
-        marginBottom: 120,
-        reflow: false,
-        marginLeft: 50,
-        marginRight: 20,
-        style: {
-          position: "absolute",
-        },
-      },
-      credits: {
-        enabled: false,
-      },
-      title: {
-        text: "Dirac Chart",
-        align: "left",
-      },
-      subtitle: {
-        text: "Select an area by dragging across the lower chart",
-        align: "left",
-      },
-      xAxis: {
-        type: "datetime",
-      },
-      yAxis: {
-        title: {
-          text: null,
-        },
-        maxZoom: 0.1,
-      },
-      tooltip: {
-        formatter: function () {
-          var point = this.points[0];
-          return (
-            "<b>" +
-            point.series.name +
-            "</b><br/>" +
-            this.x +
-            ":<br/>" +
-            "1 USD = " +
-            point.y +
-            " EUR"
-          );
-        },
-        shared: true,
-      },
-      legend: {
-        enabled: false,
-      },
-      plotOptions: {
-        series: {
-          marker: {
-            enabled: false,
-            states: {
-              hover: {
-                enabled: true,
-                radius: 3,
-              },
+        // create a detail chart referenced by a global variable
+        detailChart = Highcharts.chart('detail-container', {
+            chart: {
+                marginBottom: 120,
+                reflow: false,
+                marginLeft: 50,
+                marginRight: 20,
+                type: "scatter",
+                zoomType: "xy",
+                height: '60%',
+                style: {
+                    position: 'absolute'
+                }
             },
-          },
-        },
-      },
-      series: [
-        {
-          name: "USD to EUR",
-          pointStart: detailStart,
-          // pointInterval: 24 * 3600 * 1000,
-          data: detailData,
-        },
-      ],
-
-      exporting: {
-        enabled: false,
-      },
-    }); // return chart
-  }
-
-  // create the master chart
-  function createMaster(data) {
-    Highcharts.chart(
-      "master-container",
-      {
-        chart: {
-          type: "scatter",
-          zoomType: "xy"
-        },
-        boost: {
-          useGPUTranslations: true,
-          usePreAllocated: true,
-        },
-        title: {
-          text: "Performance monitoring",
-          align: "center",
-        },
-        xAxis: {
-          title: {
-            text: "CPU norm",
-          },
-          labels: {
-            format: "{value}",
-          },
-          startOnTick: true,
-          endOnTick: true,
-          showLastLabel: true,
-        },
-        yAxis: {
-          title: {
-            text: "WallTime (secs)",
-          },
-          labels: {
-            format: "{value}",
-          },
-        },
-        legend: {
-          enabled: true,
-        },
-        plotOptions: {
-          scatter: {
-            marker: {
-              radius: 1,
-              symbol: "circle",
-              states: {
-                hover: {
-                  enabled: true,
-                  lineColor: "rgb(100,100,100)",
+            credits: {
+                enabled: false
+            },
+            title: {
+                text: new Date(data[0]['_time']) + ' - ' + new Date(data[data.length - 1]['_time']),
+                align: 'left'
+            },
+            subtitle: {
+                text: 'Select an area by dragging across the lower chart',
+                align: 'left'
+            },
+            xAxis: {
+                title: {
+                    text: "CPU norm",
                 },
-              },
+                labels: {
+                    format: "{value}",
+                }
             },
-            states: {
-              hover: {
-                marker: {
-                  enabled: false,
+            yAxis: {
+                title: {
+                    text: "WallTime (secs)",
                 },
-              },
+                labels: {
+                    format: "{value}",
+                },
+                maxZoom: 0.1
             },
-          },
-          series: {
-            turboThreshold: 0,
-          },
-        },
-        tooltip: {
-          formatter: function () {
-            return (
-              "<b>CPU norm:</b> " +
-              this.x +
-              "<br>" +
-              "<b>Wall Time:</b> " +
-              this.point.wall_time +
-              "<br>" +
-              "<b>Time:</b> " +
-              this.point.time +
-              "<br>" +
-              "<b>Site:</b> " +
-              this.point.site +
-              "<br>" +
-              "<b>User:</b> " +
-              this.point.user +
-              "<br>" +
-              "<b>Job_ID:</b> " +
-              this.point.job_id +
-              "<br>" +
-              "<b>Hostname:</b> " +
-              this.point.hostname +
-              "<br>" +
-              "<b>Model:</b> " +
-              this.point.model +
-              "<br>" +
-              "<b>Status:</b> " +
-              this.point.status
-            );
-          },
-        },
-        series: data,
-      },
-      (masterChart) => {
-        // createDetail(masterChart);
-      }
-    ); // return chart instance
-  }
+            plotOptions: {
+                scatter: {
+                    marker: {
+                        radius: 1,
+                        symbol: "circle",
+                        states: {
+                            hover: {
+                                enabled: true,
+                                lineColor: "rgb(100,100,100)",
+                            },
+                        },
+                    },
+                    states: {
+                        hover: {
+                            marker: {
+                                enabled: false,
+                            },
+                        },
+                    },
+                },
+                series: {
+                    turboThreshold: 0,
+                },
+            },
+            tooltip: {
+                formatter: function() {
+                    return (
+                        "<b>CPU norm:</b> " +
+                        this.point.cpu_norm +
+                        "<br>" +
+                        "<b>Wall Time:</b> " +
+                        this.point.wall_time +
+                        "<br>" +
+                        "<b>Time:</b> " +
+                        new Date(this.point.time) +
+                        "<br>" +
+                        "<b>Site:</b> " +
+                        this.point.site +
+                        "<br>" +
+                        "<b>User:</b> " +
+                        this.point.user +
+                        "<br>" +
+                        "<b>Job_ID:</b> " +
+                        this.point.job_id +
+                        "<br>" +
+                        "<b>Hostname:</b> " +
+                        this.point.hostname +
+                        "<br>" +
+                        "<b>Model:</b> " +
+                        this.point.model +
+                        "<br>" +
+                        "<b>Status:</b> " +
+                        this.point.status
+                    );
+                },
+            },
+            series: [{
+                name: null,
+                data: detailData
+            }],
+            exporting: {
+                enabled: false
+            }
+        }); // return chart
+    }
 
-  // make the container smaller and add a second container for the master chart
-  const container = document.getElementById("highcharts-container");
-  container.style.position = "relative";
-  container.innerHTML +=
-    '<div id="detail-container"></div><div id="master-container"></div>';
+    // create the master chart
+    function createMaster(data) {
+        // console.log('start time: ', new Date(data[0]['_time']));
+        // console.log('stop time: ', new Date(data[data.length - 1]['_time']));
+        data.forEach(obj => {
+            obj['x'] = obj._time;
+            obj['y'] = obj.wall_time;
+        });
+        masterChart = Highcharts.chart('master-container', {
+            chart: {
+                reflow: false,
+                borderWidth: 0,
+                backgroundColor: null,
+                marginLeft: 50,
+                marginRight: 20,
+                zoomType: 'x',
+                events: {
+                    // listen to the selection event on the master chart to update the
+                    // extremes of the detail chart
+                    selection: function(event) {
+                        var extremesObject = event.xAxis[0],
+                            min = extremesObject.min,
+                            max = extremesObject.max,
+                            detailData = [],
+                            xAxis = this.xAxis[0];
 
-  DATA = prepareData();
-  console.log(DATA[0]);
-  // create master and in its callback, create the detail chart
-  createMaster(DATA);
+                        // reverse engineer the last part of the data
+                        this.series[0].data.forEach(point => {
+                            if (point.x > min && point.x < max) {
+                                data.forEach(obj => {
+                                    if (obj['_time'] >= point.x && obj['_time'] <= max && !detailData.some((val) => val.x === obj['cpu_norm'] && val.y === obj['wall_time']))
+                                        detailData.push({
+                                            x: obj.cpu_norm,
+                                            y: obj.wall_time,
+                                            wall_time: obj.wall_time,
+                                            time: new Date(obj._time),
+                                            site: obj.site,
+                                            user: obj.user,
+                                            cpu_norm: obj.cpu_norm,
+                                            job_id: obj.job_id,
+                                            hostname: obj.hostname,
+                                            model: obj.model,
+                                            status: obj.status,
+                                        });
+                                });
+                            }
+                        });
+
+                        // move the plot bands to reflect the new detail span
+                        xAxis.removePlotBand('mask-before');
+                        xAxis.addPlotBand({
+                            id: 'mask-before',
+                            from: data[0]['_time'],
+                            to: min,
+                            color: 'rgba(0, 0, 0, 0.2)'
+                        });
+
+                        xAxis.removePlotBand('mask-after');
+                        xAxis.addPlotBand({
+                            id: 'mask-after',
+                            from: max,
+                            to: data[data.length - 1]['_time'],
+                            color: 'rgba(0, 0, 0, 0.2)'
+                        });
+                        detailChart.series[0].setData(detailData);
+                        return false;
+                    }
+                }
+            },
+            title: {
+                text: null
+            },
+            accessibility: {
+                enabled: false
+            },
+            xAxis: {
+                type: 'datetime',
+                showLastTickLabel: true,
+                startOnTick: true,
+                endOnTick: true,
+                maxZoom: 14 * 24 * 3600 * 1000, // fourteen days, убираем 2 нуля - интервал уменьшается до часов
+                plotBands: [{
+                    id: 'mask-before',
+                    from: data[0]['_time'],
+                    to: data[data.length - 1]['_time'],
+                    color: 'rgba(0, 0, 0, 0.2)'
+                }],
+                title: {
+                    text: null
+                }
+            },
+            yAxis: {
+                gridLineWidth: 0,
+                labels: {
+                    enabled: false
+                },
+                title: {
+                    text: null
+                },
+                showFirstLabel: false
+            },
+            tooltip: {
+                formatter: function() {
+                    return '<b>Time:</b>' + Highcharts.dateFormat('%e - %b - %Y', new Date(this.x)) +
+                        '<br><b>Wall time:</b> ' + this.y + ' (secs)';
+                }
+            },
+            legend: {
+                enabled: false
+            },
+            credits: {
+                enabled: false
+            },
+            plotOptions: {
+                series: {
+                    fillColor: {
+                        linearGradient: [0, 0, 0, 70],
+                        stops: [
+                            [0, Highcharts.getOptions().colors[0]],
+                            [1, 'rgba(255,255,255,0)']
+                        ]
+                    },
+                    lineWidth: 1,
+                    marker: {
+                        enabled: false
+                    },
+                    shadow: false,
+                    states: {
+                        hover: {
+                            lineWidth: 1
+                        }
+                    },
+                    enableMouseTracking: true
+                }
+            },
+            series: [{
+                type: 'area',
+                name: 'Time',
+                pointInterval: 30 * 24 * 3600 * 1000, // 1 сутки
+                pointStart: data[0]['_time'],
+                data: data.map((obj) => [obj._time, obj.wall_time])
+            }],
+            exporting: {
+                enabled: false
+            },
+            boost: {
+                useGPUTranslations: true,
+                usePreAllocated: true,
+            }
+        }, masterChart => {
+            createDetail(masterChart);
+        }); // return chart instance
+    }
+
+    console.log(data);
+
+    // make the container smaller and add a second container for the master chart
+    $('#highcharts-container').html('<div id="detail-container"></div><div id="master-container"></div>');
+
+    $('#select_color_filter, #select_marker_size').prop("disabled", false);
+
+    PREPARED_DATA = prepareData();
+    // create master and in its callback, create the detail chart
+    createMaster(data);
+
+    $('#master-container').css({
+        'height': '100px',
+        'width': '100%',
+        'margin-top': '100px'
+    });
+    console.log($('#detail-container .highcharts-container').height());
 }
