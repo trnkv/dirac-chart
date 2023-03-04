@@ -141,9 +141,7 @@
         var start_end = createDateRangePicker();
         START_TIME = start_end[0].format(dt_format);
         END_TIME = start_end[1].format(dt_format);
-        console.log(START_TIME, END_TIME);
         $('#reportrange').on('apply.daterangepicker', function(ev, picker) {
-            console.log(picker);
             START_TIME = picker.startDate.format(dt_format);
             END_TIME = picker.endDate.format(dt_format);
         });

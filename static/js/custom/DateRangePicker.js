@@ -1,5 +1,5 @@
 function createDateRangePicker() {
-    var start = moment().subtract(5, 'years'); //moment().subtract(29, 'days');
+    var start = moment().subtract(29, 'days');
     var end = moment();
 
     function cb(start, end) {

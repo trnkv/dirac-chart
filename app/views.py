@@ -1,8 +1,6 @@
 from datetime import datetime
 from django.shortcuts import render
-import numpy as np
 import pandas as pd
-from functools import reduce
 import pytz
 from django.http import JsonResponse, HttpResponse
 
@@ -27,17 +25,16 @@ def get_filters(request):
     return JsonResponse({'filters': filters})
 
 
-def get_data_by_filters(request):
-    
+def get_data_by_filters(request):    
     filters = request.GET.getlist('filters[]')
     start_datetime = datetime.strptime(request.GET.get('start'), '%Y-%m-%d %H:%M:%S')
     end_datetime = datetime.strptime(request.GET.get('end'), '%Y-%m-%d %H:%M:%S')
 
     local = pytz.timezone("Europe/Moscow")
     local_start_datetime = local.localize(start_datetime, is_dst=None)
-    utc_start_datetime = local_start_datetime.astimezone(pytz.utc)#.strftime('%Y-%m-%d %H:%M:%S')
+    utc_start_datetime = local_start_datetime.astimezone(pytz.utc)
     local_end_datetime = local.localize(end_datetime, is_dst=None)
-    utc_end_datetime = local_end_datetime.astimezone(pytz.utc)#.strftime('%Y-%m-%d %H:%M:%S')
+    utc_end_datetime = local_end_datetime.astimezone(pytz.utc)
 
     df = pd.read_csv(
         'static/data/data.csv',
@@ -45,22 +42,13 @@ def get_data_by_filters(request):
         header=0
     )
 
-    df['_time'] = pd.to_datetime(df['_time'])#.dt.tz_convert('Europe/Moscow')
+    df['_time'] = pd.to_datetime(df['_time'])
     df['_time'] = df['_time'].apply(pd.Timestamp)
 
-    # df['_time'] = df['_time'].apply(to_datetime)
-    print('Первый элемент: ', df['_time'].iloc[0], type(df['_time'].iloc[0]))
-
     utc_start_datetime64 = pd.Timestamp(utc_start_datetime)
-    print('Дата старта: ', utc_start_datetime64, type(utc_start_datetime64))
     utc_end_datetime64 = pd.Timestamp(utc_end_datetime)
-    print('Дата окончания: ', utc_end_datetime64, type(utc_end_datetime64))
-
-    print()
 
     df = df[df["_time"].between(utc_start_datetime64, utc_end_datetime64)]
-    print(df.head())
-    print(df.info())
 
     df = df.sort_values(by='_time', ascending=True)
     cols_vals = [filter.split("_") for filter in filters]

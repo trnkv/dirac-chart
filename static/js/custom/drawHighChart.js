@@ -164,8 +164,6 @@ function drawHighChart(data, filter) {
 
     // create the master chart
     function createMaster(data) {
-        // console.log('start time: ', new Date(data[0]['_time']));
-        // console.log('stop time: ', new Date(data[data.length - 1]['_time']));
         data.forEach(obj => {
             obj['x'] = obj._time;
             obj['y'] = obj.wall_time;
