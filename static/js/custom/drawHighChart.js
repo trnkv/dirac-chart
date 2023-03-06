@@ -1,14 +1,14 @@
 var masterChart, detailChart;
-var PREPARED_DATA = [],
+var SERIES = [],
     color_filter;
 
 function prepareData(data) {
-    PREPARED_DATA = [];
+    SERIES = [];
     if (color_filter === undefined) color_filter = "site";
     data.forEach((obj) => {
-        for (var i = 0; i < PREPARED_DATA.length; i++) {
-            if (PREPARED_DATA[i].name == obj[color_filter]) {
-                PREPARED_DATA[i].data.push({
+        for (var i = 0; i < SERIES.length; i++) {
+            if (SERIES[i].name == obj[color_filter]) {
+                SERIES[i].data.push({
                     x: obj.cpu_norm,
                     y: obj.wall_time,
                     wall_time: secondsToDhms(obj.wall_time),
@@ -20,11 +20,11 @@ function prepareData(data) {
                     model: obj.model,
                     status: obj.status,
                 });
-                PREPARED_DATA[i].marker = { 'radius': markerSize };
+                SERIES[i].marker = { 'radius': markerSize };
                 return;
             }
         }
-        PREPARED_DATA.push({
+        SERIES.push({
             name: obj[color_filter],
             data: [{
                 x: obj.cpu_norm,
@@ -49,7 +49,6 @@ function prepareData(data) {
 function drawHighChart(data, filter) {
     console.log('markerSize: ', markerSize);
     color_filter = (filter === undefined) ? filter = "site" : filter;
-    // data_by_color_filter = [...new Set(data.map((obj) => obj[color_filter]))];
 
     // create the detail chart
     function createDetail(masterChart) {
@@ -151,7 +150,7 @@ function drawHighChart(data, filter) {
                     );
                 },
             },
-            series: PREPARED_DATA,
+            series: SERIES,
             exporting: {
                 enabled: false
             },
@@ -198,7 +197,7 @@ function drawHighChart(data, filter) {
                             // change detailData for detailChart
                             var points = this.series[0].data.filter(point => point.x > min && point.x < max);
                             points.forEach(point => { // ИЗ-ЗА ЭТОГО ОЧЕНЬ ДОЛГО ГРУЗИТ!!!
-                                PREPARED_DATA.forEach(element => {
+                                SERIES.forEach(element => {
                                     var name = element.name === null ? 'Unknown' : element.name;
                                     var series = ddContainsName(name);
                                     if (series)
@@ -338,7 +337,7 @@ function drawHighChart(data, filter) {
     $('#select_color_filter, #select_marker_size').prop("disabled", false);
 
     prepareData(data);
-    console.log('prepared: ', PREPARED_DATA);
+    console.log('prepared: ', SERIES);
 
     // create master and in its callback, create the detail chart
     createMaster(data);
@@ -346,6 +345,6 @@ function drawHighChart(data, filter) {
     $('#master-container').css({
         'height': '100px',
         'width': '100%',
-        'margin-top': '100px'
+        'margin-top': $("#detail-container .highcharts-container").height()
     });
 }

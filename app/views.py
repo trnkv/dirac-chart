@@ -27,13 +27,13 @@ def get_filters(request):
 
 def get_data_by_filters(request):    
     filters = request.GET.getlist('filters[]')
-    start_datetime = datetime.strptime(request.GET.get('start'), '%Y-%m-%d %H:%M:%S')
-    end_datetime = datetime.strptime(request.GET.get('end'), '%Y-%m-%d %H:%M:%S')
+    start_period = datetime.strptime(request.GET.get('start'), '%Y-%m-%d %H:%M:%S')
+    end_period = datetime.strptime(request.GET.get('end'), '%Y-%m-%d %H:%M:%S')
 
     local = pytz.timezone("Europe/Moscow")
-    local_start_datetime = local.localize(start_datetime, is_dst=None)
+    local_start_datetime = local.localize(start_period, is_dst=None)
     utc_start_datetime = local_start_datetime.astimezone(pytz.utc)
-    local_end_datetime = local.localize(end_datetime, is_dst=None)
+    local_end_datetime = local.localize(end_period, is_dst=None)
     utc_end_datetime = local_end_datetime.astimezone(pytz.utc)
 
     df = pd.read_csv(

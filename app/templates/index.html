@@ -21,13 +21,17 @@
     <script src="{% static 'js/daterangepicker/daterangepicker.js' %}"></script>
     <!-- HighCharts -->
     <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/stock/modules/stock.js"></script>
+    <script src="https://code.highcharts.com/stock/modules/exporting.js"></script>
+    <script src="https://code.highcharts.com/stock/modules/export-data.js"></script>
     <!-- Custom functions -->
     <script src="{% static 'js/custom/DateRangePicker.js' %}"></script>
-    <script src="{% static 'js/custom/chartAllData.js' %}"></script>
+    <!-- <script src="{% static 'js/custom/chartAllData.js' %}"></script> -->
     <script src="{% static 'js/custom/secondsToDhms.js' %}"></script>
     <script src="{% static 'js/custom/drawFilter.js' %}"></script>
-    <script src="{% static 'js/custom/drawHighChart.js' %}"></script>
     <script src="{% static 'js/custom/getDataByFilters.js' %}"></script>
+    <!-- <script src="{% static 'js/custom/drawHighChart.js' %}"></script> -->
+    <script src="{% static 'js/custom/drawHighChart_STOCK.js' %}"></script>
 </head>
 
 <body>
@@ -105,9 +109,7 @@
                     <div class="semilayer"></div>
                     <div id="spinner"></div>
                 </div>
-                <figure class="highcharts-figure">
-                    <div id="highcharts-container" style="position: relative;"></div>
-                </figure>
+                <div id="highcharts-container" style="position: relative;"></div>
             </div>
         </div>
     </div>
@@ -161,12 +163,12 @@
         });
 
         $("#select_color_filter").on('change', function() {
-            drawHighChart(DATA, $(this).val());
+            drawChart(prepareData(DATA, $(this).val()));
         });
 
         $("#select_marker_size").on('change', function() {
             markerSize = Number($(this).val());
-            detailChart.series.forEach(series => {
+            STOCKCHART.series.forEach(series => {
                 series.update({
                     marker: {
                         radius: markerSize
@@ -186,15 +188,15 @@
                     (v) => v.includes("site") && FILTERS.some((v) => v.includes("user"))
                 )
             )
-                getDataByFilters(FILTERS, START_TIME, END_TIME, "status");
+                drawChart(undefined, FILTERS, START_TIME, END_TIME, "status");
             else if (
                 FILTERS.length > 0 &&
                 FILTERS.every(function(item) {
                     return item.includes("site");
                 })
             )
-                getDataByFilters(FILTERS, START_TIME, END_TIME, "user");
-            else if (FILTERS.length > 0) getDataByFilters(FILTERS, START_TIME, END_TIME);
+                drawChart(undefined, FILTERS, START_TIME, END_TIME, "user");
+            else if (FILTERS.length > 0) drawChart(FILTERS, START_TIME, END_TIME);
         });
 
         $("#site-selector input[value='all']").click(function() {
@@ -202,6 +204,7 @@
                 .not(this)
                 .prop("checked", this.checked);
             if ($(this).is(":checked")) {
+                $("#data_loading_preloader").css("display", "block");
                 $("#site-selector input:checkbox[value!='all']").each(function() {
                     FILTERS.push($(this).val());
                 });
@@ -209,7 +212,7 @@
                 $("#site-selector input:checkbox[value!='all']").each(function() {
                     FILTERS.splice(FILTERS.indexOf($(this)), 1);
                 });
-            getDataByFilters(FILTERS, START_TIME, END_TIME);
+            drawChart(undefined, FILTERS, START_TIME, END_TIME);
         });
 
         $("#user-selector input[value='all']").click(function() {
@@ -217,6 +220,7 @@
                 .not(this)
                 .prop("checked", this.checked);
             if ($(this).is(":checked")) {
+                $("#data_loading_preloader").css("display", "block");
                 $("#user-selector input:checkbox[value!='all']").each(function() {
                     FILTERS.push($(this).val());
                 });
@@ -224,7 +228,7 @@
                 $("#user-selector input:checkbox[value!='all']").each(function() {
                     FILTERS.splice(FILTERS.indexOf($(this)), 1);
                 });
-            getDataByFilters(FILTERS, START_TIME, END_TIME);
+            drawChart(undefined, FILTERS, START_TIME, END_TIME);
         });
 
         $("#status-selector input[value='all']").click(function() {
@@ -232,6 +236,7 @@
                 .not(this)
                 .prop("checked", this.checked);
             if ($(this).is(":checked")) {
+                $("#data_loading_preloader").css("display", "block");
                 $("#status-selector input:checkbox[value!='all']").each(function() {
                     FILTERS.push($(this).val());
                 });
@@ -239,7 +244,7 @@
                 $("#status-selector input:checkbox[value!='all']").each(function() {
                     FILTERS.splice(FILTERS.indexOf($(this)), 1);
                 });
-            getDataByFilters(FILTERS, START_TIME, END_TIME);
+            drawChart(undefined, FILTERS, START_TIME, END_TIME);
         });
     });
 </script>
@@ -327,7 +332,6 @@
     }
     
     #master-container {
-        top: 500px;
         height: 100px;
     }
 </style>
