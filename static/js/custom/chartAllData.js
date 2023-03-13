@@ -7,6 +7,6 @@ function chartAllData() {
             dynamicTyping: true,
             fastMode: true,
         }).data;
-        drawHighChart(DATA);
+        DrawHighChart(DATA);
     });
 }

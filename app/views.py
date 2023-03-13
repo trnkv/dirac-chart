@@ -60,6 +60,9 @@ def get_data_by_filters(request):
             filters[pair[0]] = [pair[1]]
     for key, value in filters.items():
         df = df.loc[df[key].isin(value)]
+    df['id'] = df.index
+    df['x'] = df['_time']
+    df['y'] = df['wall_time']
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename=filtered_data.csv'
     df.to_csv(path_or_buf=response, index=False)

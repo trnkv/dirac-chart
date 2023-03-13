@@ -21,12 +21,14 @@
     <script src="{% static 'js/daterangepicker/daterangepicker.js' %}"></script>
     <!-- HighCharts -->
     <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/modules/exporting.js"></script>
+    <script src="https://code.highcharts.com/modules/boost.js"></script>
     <!-- Custom functions -->
     <script src="{% static 'js/custom/DateRangePicker.js' %}"></script>
     <script src="{% static 'js/custom/chartAllData.js' %}"></script>
     <script src="{% static 'js/custom/secondsToDhms.js' %}"></script>
     <script src="{% static 'js/custom/drawFilter.js' %}"></script>
-    <script src="{% static 'js/custom/drawHighChart.js' %}"></script>
+    <script src="{% static 'js/custom/DrawHighChart.js' %}"></script>
     <script src="{% static 'js/custom/getDataByFilters.js' %}"></script>
 </head>
 
@@ -34,7 +36,7 @@
     <div class="container-fluid">
         <div class="row">
             <div class="col-3">
-                <button class="btn btn-primary" id="btn_show_chart" style="display: none">Show</button>
+                <button class="btn btn-primary btn_show_chart" style="display: none">Show</button>
                 <div id="time-selector" class="card">
                     <div class="card-body">
                         <h5 class="card-title">Time selector</h5>
@@ -47,8 +49,9 @@
                     <div class="card-body">
                         <h5 class="card-title">Site selector</h5>
                         <p class="card-text"></p>
-                        <div class="input-group-text">
-                            <input class="form-check-input mt-0" type="checkbox" value="all" aria-label="Check all" />Check all
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" value="all" role="switch" id="site_all" checked>
+                            <label class="form-check-label" for="site_all">All</label>
                         </div>
                     </div>
                 </div>
@@ -56,8 +59,9 @@
                     <div class="card-body">
                         <h5 class="card-title">User selector</h5>
                         <p class="card-text"></p>
-                        <div class="input-group-text">
-                            <input class="form-check-input mt-0" type="checkbox" value="all" aria-label="Check all" />Check all
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" value="all" role="switch" id="user_all" checked>
+                            <label class="form-check-label" for="user_all">All</label>
                         </div>
                     </div>
                 </div>
@@ -65,8 +69,9 @@
                     <div class="card-body">
                         <h5 class="card-title">Status selector</h5>
                         <p class="card-text"></p>
-                        <div class="input-group-text">
-                            <input class="form-check-input mt-0" type="checkbox" value="all" aria-label="Check all" />Check all
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" value="all" role="switch" id="status_all" checked>
+                            <label class="form-check-label" for="status_all">All</label>
                         </div>
                     </div>
                 </div>
@@ -76,34 +81,32 @@
                     <div class="col">
                         <div class="input-group mb-3">
                             <label class="input-group-text" for="select_marker_size">
-                                <i class="fa-solid fa-paintbrush"></i>
+                                <span><i class="fa-solid fa-paintbrush"></i> Color filter</span>
                             </label>
-                            <select id="select_color_filter" class="form-select" disabled>
-                                <option selected disabled value="default">Choose color filter...</option>
-                                <option value="site">SITE</option>
+                            <select id="select_color_filter" class="form-select">
+                                <option selected value="site">SITE</option>
                                 <option value="user">USER</option>
                                 <option value="status">STATUS</option>
+                                <option value="hostname">HOSTNAME</option>
                             </select>
                         </div>
                     </div>
                     <div class="col">
                         <div class="input-group mb-3">
                             <label class="input-group-text" for="select_marker_size">
-                                <i class="fa-solid fa-circle-dot"></i>
+                                <span><i class="fa-solid fa-circle-dot"></i> Marker size: </span>
                             </label>
-                            <select id="select_marker_size" class="form-select" disabled>
-                                <option disabled value="default">Choose marker size...</option>
-                                <option selected value="1">Marker size: 1</option>
-                                <option value="3">Marker size: 3</option>
-                                <option value="5">Marker size: 5</option>
-                                <option value="10">Marker size: 10</option>
-                            </select>
+                            <input id="select_marker_size" class="flex-grow-1 mx-1" type="range" min="0" step="0.1" max="5" value="1">
+                            <h5><span class="badge bg-primary"><output>1.0</output></span></h5>
                         </div>
                     </div>
                 </div>
                 <div id="data_loading_preloader">
                     <div class="semilayer"></div>
-                    <div id="spinner"></div>
+                    <div id="spinner">
+                        <p>loading</p>
+                        <span></span>
+                    </div>
                 </div>
                 <figure class="highcharts-figure">
                     <div id="highcharts-container" style="position: relative;"></div>
@@ -113,13 +116,11 @@
     </div>
 </body>
 <script>
-    let DATA = undefined,
+    let GLOBAL_DATA = undefined,
         FILTERS = [],
         START_TIME, // for daterangepicker
         END_TIME, // for daterangepicker
-        dt_format = 'YYYY-MM-DD HH:mm:ss',
-        tooltip,
-        markerSize = Number($("#select_marker_size").val());
+        dt_format = 'YYYY-MM-DD HH:mm:ss';
 
     $.ajax({
         url: "get_filters",
@@ -129,13 +130,17 @@
 
         filters["sites"].forEach((site) => {
             drawFilter("#site-selector p", `site_${site}`, site);
+            FILTERS.push(`site_${site}`);
         });
         filters["users"].forEach((user) => {
             drawFilter("#user-selector p", `user_${user}`, user);
+            FILTERS.push(`user_${user}`);
         });
         filters["statuses"].forEach((status) => {
             drawFilter("#status-selector p", `status_${status}`, status);
+            FILTERS.push(`status_${status}`);
         });
+
 
         // daterangepicker
         var start_end = createDateRangePicker();
@@ -146,159 +151,90 @@
             END_TIME = picker.endDate.format(dt_format);
         });
 
-        $("#site-selector p input:checkbox, #user-selector p input:checkbox, #status-selector p input:checkbox").on("change", function() {
+        function startDefaultDownload() {
+            $("#data_loading_preloader").css("display", "block");
+            getDataByFilters(FILTERS, START_TIME, END_TIME);
+        };
+
+        startDefaultDownload();
+
+        function showTooltip(el) {
+            $(".tooltip").hide();
+            var tooltip = new bootstrap.Tooltip(el, {
+                template: '<div class="tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner"></div></div>',
+                html: true,
+                title: $(".btn_show_chart"),
+                trigger: "click manual",
+            });
+            $(".btn_show_chart").css("display", "block");
+            tooltip.show();
+        }
+
+        // choosing one data filter
+        $("input[type=checkbox][value!='all']").on("change", function() {
             let value = $(this).val();
             if ($(this).is(":checked")) FILTERS.push(value);
             else FILTERS.splice(FILTERS.indexOf(value), 1);
-            tooltip = new bootstrap.Tooltip($(this), {
-                template: '<div class="tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner bg-primary"></div></div>',
-                html: true,
-                title: $("#btn_show_chart"),
-                trigger: "click manual",
+            showTooltip($(this));
+        });
+
+        // choosing all data filters of a selector
+        $("input[type=checkbox][value='all']").click(function() {
+            var checkbox_all = $(this);
+            checkbox_all.closest(".card").find("input[type=checkbox][value!='all']").each(function() {
+                $(this).prop("checked", checkbox_all.is(":checked"));
+                if ($(this).is(":checked")) {
+                    FILTERS.push($(this).val());
+                } else
+                    FILTERS.splice(FILTERS.indexOf($(this).val()), 1);
             });
-            $("#btn_show_chart").css("display", "block");
-            tooltip.show();
+            showTooltip($(this));
         });
 
+        // choosing color filter
         $("#select_color_filter").on('change', function() {
-            drawHighChart(DATA, $(this).val());
+            detailChart.showLoading();
+            DrawHighChart(GLOBAL_DATA, $(this).val());
+            detailChart.hideLoading();
         });
 
+        // choosing marker size
+        $("#select_marker_size").on('input', function() {
+            $("output").html($(this).val());
+        });
         $("#select_marker_size").on('change', function() {
-            markerSize = Number($(this).val());
+            detailChart.showLoading();
             detailChart.series.forEach(series => {
                 series.update({
                     marker: {
-                        radius: markerSize
+                        radius: Number($(this).val())
                     }
                 });
             });
+            setLegendSymbolSize(legendSymbolSize);
+            detailChart.hideLoading();
         });
 
-        // button for chart building
-        $("#btn_show_chart").on("click", function() {
-            $("#data_loading_preloader").css("display", "block");
-            $('#select_color_filter, #select_marker_size').prop("disabled", true);
-            $('#select_color_filter option[value="default"]').prop("selected", true);
-            if (
-                FILTERS.length > 1 &&
-                FILTERS.some(
-                    (v) => v.includes("site") && FILTERS.some((v) => v.includes("user"))
-                )
-            )
-                getDataByFilters(FILTERS, START_TIME, END_TIME, "status");
-            else if (
-                FILTERS.length > 0 &&
-                FILTERS.every(function(item) {
-                    return item.includes("site");
-                })
-            )
-                getDataByFilters(FILTERS, START_TIME, END_TIME, "user");
-            else if (FILTERS.length > 0) getDataByFilters(FILTERS, START_TIME, END_TIME);
-        });
-
-        $("#site-selector input[value='all']").click(function() {
-            $("#site-selector input:checkbox")
-                .not(this)
-                .prop("checked", this.checked);
-            if ($(this).is(":checked")) {
-                $("#site-selector input:checkbox[value!='all']").each(function() {
-                    FILTERS.push($(this).val());
-                });
-            } else
-                $("#site-selector input:checkbox[value!='all']").each(function() {
-                    FILTERS.splice(FILTERS.indexOf($(this)), 1);
-                });
-            getDataByFilters(FILTERS, START_TIME, END_TIME);
-        });
-
-        $("#user-selector input[value='all']").click(function() {
-            $("#user-selector input:checkbox")
-                .not(this)
-                .prop("checked", this.checked);
-            if ($(this).is(":checked")) {
-                $("#user-selector input:checkbox[value!='all']").each(function() {
-                    FILTERS.push($(this).val());
-                });
-            } else
-                $("#user-selector input:checkbox[value!='all']").each(function() {
-                    FILTERS.splice(FILTERS.indexOf($(this)), 1);
-                });
-            getDataByFilters(FILTERS, START_TIME, END_TIME);
-        });
-
-        $("#status-selector input[value='all']").click(function() {
-            $("#status-selector input:checkbox")
-                .not(this)
-                .prop("checked", this.checked);
-            if ($(this).is(":checked")) {
-                $("#status-selector input:checkbox[value!='all']").each(function() {
-                    FILTERS.push($(this).val());
-                });
-            } else
-                $("#status-selector input:checkbox[value!='all']").each(function() {
-                    FILTERS.splice(FILTERS.indexOf($(this)), 1);
-                });
-            getDataByFilters(FILTERS, START_TIME, END_TIME);
+        // ======================== BUTTON OR CHART BUILDING ========================
+        $(".btn_show_chart:last").on("click", function() {
+            if (FILTERS.length > 0) {
+                $("#data_loading_preloader").css("display", "block");
+                getDataByFilters(FILTERS, START_TIME, END_TIME);
+            }
         });
     });
 </script>
 <style>
-    .semilayer {
-        background-color: #ffffff;
-        margin: 0 auto;
-        opacity: 0.7;
-        /* Прозрачность в IE */
-        filter: alpha(Opacity=70);
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
+    .tooltip {
         z-index: 1;
     }
-    
-    #spinner {
-        display: block;
-        z-index: 2;
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        height: 100px;
-        width: 100px;
-        margin: -25px 0 0 -25px;
-        border: 4px rgba(0, 0, 0, 0.25) solid;
-        border-top: 4px black solid;
-        border-bottom: 4px black solid;
-        border-radius: 50%;
-        -webkit-animation: spin1 0.7s infinite linear;
-        animation: spin1 0.7s infinite linear;
+
+    .tooltip-inner {
+        padding: 0 !important;
     }
-    
-    @-webkit-keyframes spin1 {
-        from {
-            -webkit-transform: rotate(0deg);
-            transform: rotate(0deg);
-        }
-        to {
-            -webkit-transform: rotate(359deg);
-            transform: rotate(359deg);
-        }
-    }
-    
-    @keyframes spin1 {
-        from {
-            -webkit-transform: rotate(0deg);
-            transform: rotate(0deg);
-            -webkit-transform: rotate(0deg);
-            transform: rotate(0deg);
-        }
-        to {
-            -webkit-transform: rotate(359deg);
-            transform: rotate(359deg);
-            -webkit-transform: rotate(359deg);
-            transform: rotate(359deg);
-        }
+
+    .form-switch > .form-check-label{
+        font-weight: bold;
     }
     
     #reportrange {
@@ -315,7 +251,7 @@
     
     .daterangepicker {
         position: absolute;
-        z-index: 100;
+        z-index: 2;
         background-color: #fff;
     }
     
@@ -327,8 +263,98 @@
     }
     
     #master-container {
-        top: 500px;
-        height: 100px;
+        height: 20vh;
+    }
+    
+    .semilayer {
+        background-color: #fff;
+        margin: 0 auto;
+        opacity: 0.7;
+        /* Прозрачность в IE */
+        filter: alpha(Opacity=70);
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 3;
+    }
+    
+    #spinner {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        z-index: 4;
+        transform: translate(-50%, -50%);
+        backdrop-filter: blur(2px);
+        width: 150px;
+        height: 150px;
+        background: transparent;
+        border: 3px solid #adb5bd;
+        border-radius: 50%;
+        text-align: center;
+        line-height: 150px;
+        font-family: sans-serif;
+        font-size: 20px;
+        color: #0d6dfd;
+        letter-spacing: 4px;
+        text-transform: uppercase;
+        text-shadow: 0 0 10px #0d6dfd;
+        box-shadow: 0 0 20px rgba(0, 0, 0, .5);
+    }
+    
+    #spinner:before {
+        content: '';
+        position: absolute;
+        top: -3px;
+        left: -3px;
+        width: 100%;
+        height: 100%;
+        border: 3px solid transparent;
+        border-radius: 50%;
+        animation: animateC 2s linear infinite;
+    }
+    
+    #spinner>span {
+        display: block;
+        position: absolute;
+        top: calc(50% - 2px);
+        left: 50%;
+        width: 50%;
+        height: 4px;
+        background: transparent;
+        transform-origin: left;
+        animation: animate 2s linear infinite;
+    }
+    
+    #spinner>span:before {
+        content: '';
+        position: absolute;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #0d6dfd;
+        top: -6px;
+        right: -8px;
+        box-shadow: 0 0 20px #0d6dfd;
+    }
+    
+    @keyframes animateC {
+        0% {
+            transform: rotate(0deg);
+        }
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+    
+    @keyframes animate {
+        0% {
+            transform: rotate(45deg);
+        }
+        100% {
+            transform: rotate(405deg);
+        }
     }
 </style>
 
