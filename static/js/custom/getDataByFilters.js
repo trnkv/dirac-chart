@@ -1,5 +1,5 @@
 function getDataByFilters(filters, startTime, endTime, value) {
-    let colorFilter = (value === undefined) ? "site" : value.split("_")[0];
+    let colorFilter = (value === undefined) ? $("#select_color_filter").val() : value.split("_")[0];
     $.ajax({
         xhr: function() {
             var xhr = new window.XMLHttpRequest();
@@ -27,8 +27,12 @@ function getDataByFilters(filters, startTime, endTime, value) {
             fastMode: true,
         }).data;
         GLOBAL_DATA.forEach(obj => {
-            obj['_time'] = Date.parse(obj['_time']);
-        });
+            // переводим в локальную и преобразовываем в миллисекунды (т.к. xAxis в master в датах умеет работать только с мс)
+            obj['_time'] = new Date(obj['_time']).getTime()
+            obj['x'] = obj['_time']
+        })
+        // console.log(GLOBAL_DATA[0]);
+        // console.log(getTotalJobs(GLOBAL_DATA))
         if (GLOBAL_DATA.length > 0) {
             DrawHighChart(GLOBAL_DATA, colorFilter);
         } else {

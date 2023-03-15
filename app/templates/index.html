@@ -24,12 +24,12 @@
     <script src="https://code.highcharts.com/modules/exporting.js"></script>
     <script src="https://code.highcharts.com/modules/boost.js"></script>
     <!-- Custom functions -->
-    <script src="{% static 'js/custom/DateRangePicker.js' %}"></script>
-    <script src="{% static 'js/custom/chartAllData.js' %}"></script>
+    <script src="{% static 'js/custom/createDateRangePicker.js' %}"></script>
     <script src="{% static 'js/custom/secondsToDhms.js' %}"></script>
     <script src="{% static 'js/custom/drawFilter.js' %}"></script>
     <script src="{% static 'js/custom/DrawHighChart.js' %}"></script>
     <script src="{% static 'js/custom/getDataByFilters.js' %}"></script>
+    <script src="{% static 'js/custom/compTotalJobs.js' %}"></script>
 </head>
 
 <body>
@@ -126,7 +126,7 @@
         url: "get_filters",
     }).done(function(response) {
         $("#data_loading_preloader").css("display", "none");
-        let filters = response["filters"];
+        var filters = response["filters"];
 
         filters["sites"].forEach((site) => {
             drawFilter("#site-selector p", `site_${site}`, site);
@@ -141,7 +141,6 @@
             FILTERS.push(`status_${status}`);
         });
 
-
         // daterangepicker
         var start_end = createDateRangePicker();
         START_TIME = start_end[0].format(dt_format);
@@ -149,6 +148,7 @@
         $('#reportrange').on('apply.daterangepicker', function(ev, picker) {
             START_TIME = picker.startDate.format(dt_format);
             END_TIME = picker.endDate.format(dt_format);
+            showTooltip($(this));
         });
 
         function startDefaultDownload() {
@@ -228,12 +228,12 @@
     .tooltip {
         z-index: 1;
     }
-
+    
     .tooltip-inner {
         padding: 0 !important;
     }
-
-    .form-switch > .form-check-label{
+    
+    .form-switch>.form-check-label {
         font-weight: bold;
     }
     

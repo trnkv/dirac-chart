@@ -5,7 +5,7 @@ var legendSymbolSize = 10;
 
 function prepareData(inputData) {
     SERIES_DATA = [];
-    if (color_filter === undefined) color_filter = "site";
+    if (color_filter === undefined) color_filter = $("#select_color_filter").val();
     inputData.forEach((obj) => {
         for (var i = 0; i < SERIES_DATA.length; i++) {
             if (SERIES_DATA[i].name == obj[color_filter]) {
@@ -34,16 +34,26 @@ function prepareData(inputData) {
     });
 }
 
-function setLegendSymbolSize(size){
+function setLegendSymbolSize(size) {
     $(detailChart.series).each(function() {
         this.legendItem.symbol.attr('width', size);
         this.legendItem.symbol.attr('height', size);
     });
 }
 
+function msFormat(milliseconds) {
+    return Highcharts.dateFormat('%e %b %Y, %H:%M:%S', new Date(milliseconds));
+}
+
 function DrawHighChart(INPUT_DATA, filter) {
     color_filter = (filter === undefined) ? filter = "site" : filter;
     // data_by_color_filter = [...new Set(data.map((obj) => obj[color_filter]))];
+
+    Highcharts.setOptions({
+        time: {
+            useUTC: false,
+        }
+    });
 
     // create the detail chart
     function createDetail(masterChart) {
@@ -65,11 +75,11 @@ function DrawHighChart(INPUT_DATA, filter) {
                 enabled: false
             },
             title: {
-                text: new Date(INPUT_DATA[0]['_time']).toISOString() + ' - ' + new Date(INPUT_DATA[INPUT_DATA.length - 1]['_time']).toISOString(),
+                text: msFormat(INPUT_DATA[0]['_time']) + ' - ' + msFormat(INPUT_DATA[INPUT_DATA.length - 1]['_time']),
                 align: 'left'
             },
             subtitle: {
-                text: `Count of point: ${INPUT_DATA.length}`,
+                text: `Count of points: <b>${INPUT_DATA.length}</b>`,
                 align: 'left'
             },
             legend: {
@@ -131,32 +141,15 @@ function DrawHighChart(INPUT_DATA, filter) {
                 formatter: function() {
                     var dataPoint = INPUT_DATA.filter(obj => obj.id === this.point.id)[0];
                     return (
-                        "<b>CPU norm:</b> " +
-                        dataPoint.cpu_norm +
-                        "<br>" +
-                        "<b>Wall Time:</b> " +
-                        secondsToDhms(dataPoint.wall_time) +
-                        "<br>" +
-                        "<b>Time:</b> " +
-                        new Date(dataPoint._time) +
-                        "<br>" +
-                        "<b>Site:</b> " +
-                        dataPoint.site +
-                        "<br>" +
-                        "<b>User:</b> " +
-                        dataPoint.user +
-                        "<br>" +
-                        "<b>Job_ID:</b> " +
-                        dataPoint.job_id +
-                        "<br>" +
-                        "<b>Hostname:</b> " +
-                        dataPoint.hostname +
-                        "<br>" +
-                        "<b>Model:</b> " +
-                        dataPoint.model +
-                        "<br>" +
-                        "<b>Status:</b> " +
-                        dataPoint.status
+                        "<b>CPU norm:</b> " + dataPoint.cpu_norm + "<br>" +
+                        "<b>Wall Time:</b> " + secondsToDhms(dataPoint.wall_time) + "<br>" +
+                        "<b>Start Time:</b> " + msFormat(dataPoint._time) + "<br>" +
+                        "<b>Site:</b> " + dataPoint.site + "<br>" +
+                        "<b>User:</b> " + dataPoint.user + "<br>" +
+                        "<b>Job_ID:</b> " + dataPoint.job_id + "<br>" +
+                        "<b>Hostname:</b> " + dataPoint.hostname + "<br>" +
+                        "<b>Model:</b> " + dataPoint.model + "<br>" +
+                        "<b>Status:</b> " + dataPoint.status
                     );
                 },
             },
@@ -175,147 +168,167 @@ function DrawHighChart(INPUT_DATA, filter) {
     // create the master chart
     function createMaster() {
         masterChart = Highcharts.chart('master-container', {
-            chart: {
-                reflow: false,
-                borderWidth: 0,
-                backgroundColor: null,
-                marginLeft: 50,
-                marginRight: 20,
-                zoomType: 'x',
-                events: {
-                    // listen to the selection event on the master chart to update the
-                    // extremes of the detail chart
-                    selection: function(event) {
-                        var extremesObject = event.xAxis[0],
-                            min = extremesObject.min,
-                            max = extremesObject.max,
-                            detailData,
-                            xAxis = this.xAxis[0];
+                chart: {
+                    reflow: false,
+                    borderWidth: 0,
+                    backgroundColor: null,
+                    marginLeft: 50,
+                    marginRight: 20,
+                    zoomType: 'x',
+                    events: {
+                        // listen to the selection event on the master chart to update the
+                        // extremes of the detail chart
+                        selection: function(event) {
+                            if (!event.resetSelection) {
+                                var extremesObject = event.xAxis[0],
+                                    min = extremesObject.min,
+                                    max = extremesObject.max,
+                                    detailData,
+                                    xAxis = this.xAxis[0];
 
-                        detailChart.showLoading();
+                                detailChart.showLoading();
 
-                        // change detailData for detailChart
-                        detailData = SERIES_DATA.map(series => {
-                            return {...series, data: series.data.filter((obj) => obj._time >= min && obj._time <= max) }
-                        });
-                        detailData = detailData.filter((series) => series.data.length > 0);
+                                // change detailData for detailChart
+                                detailData = SERIES_DATA.map(series => {
+                                    return {...series, data: series.data.filter((obj) => obj._time >= min && obj._time <= max) }
+                                });
+                                detailData = detailData.filter((series) => series.data.length > 0);
 
-                        // update series in detailChart & redraw
-                        while (detailChart.series.length > 0)
-                            detailChart.series[0].remove(false);
-                        detailData.forEach(series => {
-                            series['marker'] = { 'radius': Number($("#select_marker_size").val()) };
-                            detailChart.addSeries(series, false);
-                        });
-                        detailChart.setTitle({ text: new Date(min).toISOString() + ' - ' + new Date(max).toISOString() }, { text: 'Count of points: ' + detailData.reduce(function(sum, series) { return sum + series.data.length; }, 0) }, false);
-                        detailChart.redraw();
-                        setLegendSymbolSize(legendSymbolSize);
-                        detailChart.hideLoading();
+                                // update series in detailChart & redraw
+                                while (detailChart.series.length > 0)
+                                    detailChart.series[0].remove(false);
+                                detailData.forEach(series => {
+                                    series['marker'] = { 'radius': Number($("#select_marker_size").val()) };
+                                    detailChart.addSeries(series, false);
+                                });
+                                detailChart.setTitle({ text: msFormat(min) + ' - ' + msFormat(max) }, { text: 'Count of points: <b>' + detailData.reduce(function(sum, series) { return sum + series.data.length; }, 0) + '</b>' }, false);
+                                detailChart.redraw();
+                                setLegendSymbolSize(legendSymbolSize);
+                                detailChart.hideLoading();
 
-                        // move the plot bands to reflect the new detail span
-                        xAxis.removePlotBand('mask-before');
-                        xAxis.addPlotBand({
-                            id: 'mask-before',
-                            from: INPUT_DATA[0]['_time'],
-                            to: min,
-                            color: 'rgba(0, 0, 0, 0.2)'
-                        });
+                                // move the plot bands to reflect the new detail span
+                                xAxis.removePlotBand('mask-before');
+                                xAxis.addPlotBand({
+                                    id: 'mask-before',
+                                    from: totalJobsPerHour[0][0],
+                                    to: min,
+                                    color: 'rgba(0, 0, 0, 0.2)'
+                                });
 
-                        xAxis.removePlotBand('mask-after');
-                        xAxis.addPlotBand({
-                            id: 'mask-after',
-                            from: max,
-                            to: INPUT_DATA[INPUT_DATA.length - 1]['_time'],
-                            color: 'rgba(0, 0, 0, 0.2)'
-                        });
-                        return false;
+                                xAxis.removePlotBand('mask-after');
+                                xAxis.addPlotBand({
+                                    id: 'mask-after',
+                                    from: max,
+                                    to: totalJobsPerHour[totalJobsPerHour.length - 1][0],
+                                    color: 'rgba(0, 0, 0, 0.2)'
+                                });
+
+                                xAxis.setExtremes(min, max);
+                                this.showResetZoom();
+                            } else {
+                                this.xAxis[0].setExtremes(
+                                    totalJobsPerHour[0][0],
+                                    totalJobsPerHour[totalJobsPerHour.length - 1][0]
+                                );
+                            }
+                            return false;
+                        }
                     }
-                }
-            },
-            title: {
-                text: "Total jobs per hour"
-            },
-            accessibility: {
-                enabled: false
-            },
-            xAxis: {
-                type: 'datetime',
-                showLastTickLabel: true,
-                startOnTick: true,
-                endOnTick: true,
-                minRange: 14 * 24 * 3600 * 1000, // fourteen days, убираем 2 нуля - интервал уменьшается до часов
-                plotBands: [{
-                    id: 'mask-before',
-                    from: INPUT_DATA[0]['_time'],
-                    to: INPUT_DATA[INPUT_DATA.length - 1]['_time'],
-                    color: 'rgba(0, 0, 0, 0.2)'
-                }],
+                },
                 title: {
-                    text: null
-                }
-            },
-            yAxis: {
-                gridLineWidth: 0,
-                labels: {
+                    text: "Total jobs per hour"
+                },
+                accessibility: {
                     enabled: false
                 },
-                title: {
-                    text: null
-                },
-                showFirstLabel: false
-            },
-            tooltip: {
-                formatter: function() {
-                    return '<b>Time:</b>' + Highcharts.dateFormat('%e - %b - %Y', new Date(this.x)) +
-                        '<br><b>Wall time:</b> ' + this.y + ' (secs)';
-                }
-            },
-            legend: {
-                enabled: false
-            },
-            credits: {
-                enabled: false
-            },
-            plotOptions: {
-                series: {
-                    fillColor: {
-                        linearGradient: [0, 0, 0, 70],
-                        stops: [
-                            [0, Highcharts.getOptions().colors[0]],
-                            [1, 'rgba(255,255,255,0)']
-                        ]
+                xAxis: {
+                    type: 'datetime',
+                    min: totalJobsPerHour[0][0],
+                    max: totalJobsPerHour[totalJobsPerHour.length - 1][0],
+                    showLastTickLabel: true,
+                    startOnTick: true,
+                    endOnTick: true,
+                    minRange: 3600 * 1000, // 1 hour
+                    plotBands: [{
+                        id: 'mask-before',
+                        from: totalJobsPerHour[0][0],
+                        to: totalJobsPerHour[totalJobsPerHour.length - 1][0],
+                        color: 'rgba(0, 0, 0, 0.2)'
+                    }],
+                    title: {
+                        text: null
                     },
-                    lineWidth: 1,
-                    marker: {
+                    events: {
+                        setExtremes: function(e) {
+                            // console.log('e', e);
+                            if (typeof e.min == 'undefined' && typeof e.max == 'undefined') {
+                                // console.log('ZOOM OUT');
+                            }
+                        }
+                    }
+                },
+                yAxis: {
+                    gridLineWidth: 0,
+                    labels: {
                         enabled: false
                     },
-                    shadow: false,
-                    states: {
-                        hover: {
-                            lineWidth: 1
-                        }
+                    title: {
+                        text: null
                     },
-                    enableMouseTracking: true
+                    showFirstLabel: false
+                },
+                tooltip: {
+                    formatter: function() {
+                        return '<b>Time:</b>' + msFormat(this.x) +
+                            '<br><b>Jobs count:</b> ' + this.y;
+                    }
+                },
+                legend: {
+                    enabled: false
+                },
+                credits: {
+                    enabled: false
+                },
+                plotOptions: {
+                    series: {
+                        fillColor: {
+                            linearGradient: [0, 0, 0, 70],
+                            stops: [
+                                [0, Highcharts.getOptions().colors[0]],
+                                [1, 'rgba(255,255,255,0)']
+                            ]
+                        },
+                        lineWidth: 1,
+                        marker: {
+                            enabled: false
+                        },
+                        shadow: false,
+                        states: {
+                            hover: {
+                                lineWidth: 1
+                            }
+                        },
+                        enableMouseTracking: true
+                    }
+                },
+                series: [{
+                    type: 'spline',
+                    name: 'Total jobs per hour',
+                    pointInterval: 3600 * 1000, // 1 час
+                    pointStart: totalJobsPerHour[0][0],
+                    data: totalJobsPerHour
+                }],
+                exporting: {
+                    enabled: false
+                },
+                boost: {
+                    useGPUTranslations: true,
+                    usePreAllocated: true,
                 }
             },
-            series: [{
-                type: 'area',
-                name: 'Time',
-                pointInterval: 30 * 24 * 3600 * 1000, // 1 сутки
-                pointStart: INPUT_DATA[0]['_time'],
-                data: INPUT_DATA.map((obj) => [obj._time, obj.wall_time]) // изменить данные по Y!
-            }],
-            exporting: {
-                enabled: false
-            },
-            boost: {
-                useGPUTranslations: true,
-                usePreAllocated: true,
-            }
-        },
-        masterChart => {
-            createDetail(masterChart);
-        }); // return chart instance
+            masterChart => {
+                createDetail(masterChart);
+            }); // return chart instance
     }
 
     // make the container smaller and add a second container for the master chart
@@ -325,6 +338,8 @@ function DrawHighChart(INPUT_DATA, filter) {
 
     // sets SERIES_DATA: objects grouped by colorFilter
     prepareData(INPUT_DATA);
+
+    totalJobsPerHour = getTotalJobs(INPUT_DATA);
 
     // create master and in its callback, create the detail chart
     createMaster();
