@@ -1,0 +1,10 @@
+{
+  "db_host": "database.hostname",
+  "db_name": "JobDB",
+  "db_user": "username",
+  "db_password": "password",
+
+  "csv_data_path": "/opt/dirac-job-analytics/data.csv",
+  "log_file": "/var/log/dirac-job-analytics.log",
+  "log_level": "DEBUG"
+}
