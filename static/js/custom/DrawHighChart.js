@@ -51,7 +51,7 @@ function DrawHighChart(INPUT_DATA, filter) {
 
     Highcharts.setOptions({
         time: {
-            useUTC: false,
+            useUTC: true,
         }
     });
 
@@ -84,16 +84,22 @@ function DrawHighChart(INPUT_DATA, filter) {
             },
             legend: {
                 enabled: true,
+                backgroundColor: "rgba(255, 255, 255, 0.5)",
                 layout: 'vertical',
                 align: 'left',
                 verticalAlign: 'top',
-                x: 30,
+                x: 50,
                 y: 60,
                 borderWidth: 1,
                 borderRadius: 5,
                 itemMarginTop: 10,
                 itemMarginBottom: 10,
                 maxHeight: 200,
+                floating: true,
+                draggable: true,
+                title: {
+                    text: ':: Drag me'
+                },
                 // labelFormatter: function () {
                 //     return '<span style="color:' + this.color + ';">' + this.name + '</span>';
                 // },
@@ -111,7 +117,10 @@ function DrawHighChart(INPUT_DATA, filter) {
                     text: "WallTime (secs)",
                 },
                 labels: {
-                    format: "{value}",
+                    formatter: function() {
+                        return this.value/1000 + "K"
+                    },
+                    x: 5
                 },
                 // maxZoom: 0.1
             },
@@ -179,58 +188,60 @@ function DrawHighChart(INPUT_DATA, filter) {
                         // listen to the selection event on the master chart to update the
                         // extremes of the detail chart
                         selection: function(event) {
-                            if (!event.resetSelection) {
-                                var extremesObject = event.xAxis[0],
-                                    min = extremesObject.min,
-                                    max = extremesObject.max,
-                                    detailData,
-                                    xAxis = this.xAxis[0];
-
-                                detailChart.showLoading();
-
-                                // change detailData for detailChart
-                                detailData = SERIES_DATA.map(series => {
-                                    return {...series, data: series.data.filter((obj) => obj._time >= min && obj._time <= max) }
-                                });
-                                detailData = detailData.filter((series) => series.data.length > 0);
-
-                                // update series in detailChart & redraw
-                                while (detailChart.series.length > 0)
-                                    detailChart.series[0].remove(false);
-                                detailData.forEach(series => {
-                                    series['marker'] = { 'radius': Number($("#select_marker_size").val()) };
-                                    detailChart.addSeries(series, false);
-                                });
-                                detailChart.setTitle({ text: msFormat(min) + ' - ' + msFormat(max) }, { text: 'Count of points: <b>' + detailData.reduce(function(sum, series) { return sum + series.data.length; }, 0) + '</b>' }, false);
-                                detailChart.redraw();
-                                setLegendSymbolSize(legendSymbolSize);
-                                detailChart.hideLoading();
-
-                                // move the plot bands to reflect the new detail span
-                                xAxis.removePlotBand('mask-before');
-                                xAxis.addPlotBand({
-                                    id: 'mask-before',
-                                    from: totalJobsPerHour[0][0],
-                                    to: min,
-                                    color: 'rgba(0, 0, 0, 0.2)'
-                                });
-
-                                xAxis.removePlotBand('mask-after');
-                                xAxis.addPlotBand({
-                                    id: 'mask-after',
-                                    from: max,
-                                    to: totalJobsPerHour[totalJobsPerHour.length - 1][0],
-                                    color: 'rgba(0, 0, 0, 0.2)'
-                                });
-
-                                xAxis.setExtremes(min, max);
-                                this.showResetZoom();
-                            } else {
+                            try {
+                                var extremesObject = event.xAxis[0];
+                            } catch (e){
+                                var extremesObject = event.target.axes[0];
                                 this.xAxis[0].setExtremes(
                                     totalJobsPerHour[0][0],
                                     totalJobsPerHour[totalJobsPerHour.length - 1][0]
                                 );
                             }
+                            var min = extremesObject.min,
+                                max = extremesObject.max,
+                                detailData,
+                                xAxis = this.xAxis[0];
+
+                            detailChart.showLoading();
+
+                            // change detailData for detailChart
+                            detailData = SERIES_DATA.map(series => {
+                                return {...series, data: series.data.filter((obj) => obj._time >= min && obj._time <= max) }
+                            });
+                            detailData = detailData.filter((series) => series.data.length > 0);
+
+                            // update series in detailChart & redraw
+                            while (detailChart.series.length > 0)
+                                detailChart.series[0].remove(false);
+                            detailData.forEach(series => {
+                                series['marker'] = { 'radius': Number($("#select_marker_size").val()) };
+                                detailChart.addSeries(series, false);
+                            });
+                            detailChart.setTitle({ text: msFormat(min) + ' - ' + msFormat(max) }, { text: 'Count of points: <b>' + detailData.reduce(function(sum, series) { return sum + series.data.length; }, 0) + '</b>' }, false);
+                            detailChart.redraw();
+                            setLegendSymbolSize(legendSymbolSize);
+                            detailChart.hideLoading();
+
+                            // move the plot bands to reflect the new detail span
+                            xAxis.removePlotBand('mask-before');
+                            xAxis.addPlotBand({
+                                id: 'mask-before',
+                                from: totalJobsPerHour[0][0],
+                                to: min,
+                                color: 'rgba(0, 0, 0, 0.2)'
+                            });
+
+                            xAxis.removePlotBand('mask-after');
+                            xAxis.addPlotBand({
+                                id: 'mask-after',
+                                from: max,
+                                to: totalJobsPerHour[totalJobsPerHour.length - 1][0],
+                                color: 'rgba(0, 0, 0, 0.2)'
+                            });
+
+                            xAxis.setExtremes(min, max);
+                            this.showResetZoom();
+
                             return false;
                         }
                     }

@@ -125,3 +125,12 @@ STATICFILES_DIRS= [
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# load config
+import os
+import json
+with open(os.path.join(STATICFILES_DIRS[0], "config", "config.json"), 'r') as config:
+    config = json.load(config)
+    CSV_DATA_PATH = config['csv_data_path']
+    # обратиться к этой переменной из python-кода:
+    # settings.CSV_DATA_PATH

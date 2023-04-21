@@ -11,7 +11,6 @@ def index(request):
 def get_filters(request):
     df = pd.read_csv(
         'static/data/data.csv',
-        sep=";",
         header=0,
     )
     filters = {
@@ -21,13 +20,11 @@ def get_filters(request):
         "statuses": df['status'].fillna("undefined").unique().tolist(),
         "users": df['user'].fillna("undefined").unique().tolist(),
     }
-    print(filters)
     return JsonResponse({'filters': filters})
 
 
 def get_data_by_filters(request):
     filters = request.GET.getlist('filters[]')
-    print(filters)
     # приходит с клиента локализованная дата
     start_datetime = datetime.strptime(request.GET.get('start'), '%Y-%m-%d %H:%M:%S')
     end_datetime = datetime.strptime(request.GET.get('end'), '%Y-%m-%d %H:%M:%S')
@@ -38,7 +35,6 @@ def get_data_by_filters(request):
 
     df = pd.read_csv(
         'static/data/data.csv',
-        sep=";",
         header=0
     )
     df = df.fillna("undefined")
