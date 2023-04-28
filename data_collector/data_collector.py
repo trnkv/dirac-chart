@@ -79,7 +79,7 @@ def convert_data_to_pandas(data):
       "start_time": row[5],
       "end_time": row[6],
       "status": row[7],
-      "cpu_notm": float(row[8]),
+      "cpu_norm": float(row[8]),
       "cpu_time": float(row[9]),
       "cpu_mhz": float(row[10]),
       "wall_time": float(row[11]),
