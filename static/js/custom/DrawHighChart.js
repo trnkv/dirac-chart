@@ -154,10 +154,10 @@ function DrawHighChart(INPUT_DATA, filter) {
                         "<b>Wall Time:</b> " + secondsToDhms(dataPoint.wall_time) + "<br>" +
                         "<b>Start Time:</b> " + msFormat(dataPoint._time) + "<br>" +
                         "<b>Site:</b> " + dataPoint.site + "<br>" +
-                        "<b>User:</b> " + dataPoint.user + "<br>" +
+                        "<b>Owner:</b> " + dataPoint.owner + "<br>" +
                         "<b>Job_ID:</b> " + dataPoint.job_id + "<br>" +
                         "<b>Hostname:</b> " + dataPoint.hostname + "<br>" +
-                        "<b>Model:</b> " + dataPoint.model + "<br>" +
+                        "<b>CPU model:</b> " + dataPoint.cpu_model + "<br>" +
                         "<b>Status:</b> " + dataPoint.status
                     );
                 },

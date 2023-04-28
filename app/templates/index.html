@@ -62,13 +62,13 @@
                         </div>
                     </div>
                 </div>
-                <div id="user-selector" class="card">
+                <div id="owner-selector" class="card">
                     <div class="card-body">
-                        <h5 class="card-title">User selector</h5>
+                        <h5 class="card-title">Owner selector</h5>
                         <p class="card-text"></p>
                         <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" value="all" role="switch" id="user_all" checked>
-                            <label class="form-check-label" for="user_all">All</label>
+                            <input class="form-check-input" type="checkbox" value="all" role="switch" id="owner_all" checked>
+                            <label class="form-check-label" for="owner_all">All</label>
                         </div>
                     </div>
                 </div>
@@ -92,7 +92,7 @@
                             </label>
                             <select id="select_color_filter" class="form-select">
                                 <option selected value="site">SITE</option>
-                                <option value="user">USER</option>
+                                <option value="owner">OWNER</option>
                                 <option value="status">STATUS</option>
                                 <option value="hostname">HOSTNAME</option>
                             </select>
@@ -118,28 +118,6 @@
                 <figure class="highcharts-figure">
                     <div id="highcharts-container" style="position: relative;"></div>
                 </figure>
-                <table id="datatables" class="display" style="width:100%">
-                    <thead>
-                        <tr>
-                            <!-- <th>Name</th>
-                            <th>Position</th>
-                            <th>Office</th>
-                            <th>Extn.</th>
-                            <th>Start date</th>
-                            <th>Salary</th> -->
-                        </tr>
-                    </thead>
-                    <!-- <tfoot>
-                        <tr>
-                            <th>Name</th>
-                            <th>Position</th>
-                            <th>Office</th>
-                            <th>Extn.</th>
-                            <th>Start date</th>
-                            <th>Salary</th>
-                        </tr>
-                    </tfoot> -->
-                </table>
             </div>
         </div>
     </div>
@@ -161,9 +139,9 @@
             drawFilter("#site-selector p", `site_${site}`, site);
             FILTERS.push(`site_${site}`);
         });
-        filters["users"].forEach((user) => {
-            drawFilter("#user-selector p", `user_${user}`, user);
-            FILTERS.push(`user_${user}`);
+        filters["owners"].forEach((owner) => {
+            drawFilter("#owner-selector p", `owner_${owner}`, owner);
+            FILTERS.push(`owner_${owner}`);
         });
         filters["statuses"].forEach((status) => {
             drawFilter("#status-selector p", `status_${status}`, status);

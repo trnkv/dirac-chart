@@ -15,10 +15,10 @@ def get_filters(request):
     )
     filters = {
         "hostnames": df['hostname'].fillna("undefined").unique().tolist(),
-        "models": df['model'].fillna("undefined").unique().tolist(),
+        "models": df['cpu_model'].fillna("undefined").unique().tolist(),
         "sites": df['site'].fillna("undefined").unique().tolist(),
         "statuses": df['status'].fillna("undefined").unique().tolist(),
-        "users": df['user'].fillna("undefined").unique().tolist(),
+        "owners": df['owner'].fillna("undefined").unique().tolist(),
     }
     return JsonResponse({'filters': filters})
 
