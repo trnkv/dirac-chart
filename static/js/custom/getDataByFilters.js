@@ -28,8 +28,8 @@ function getDataByFilters(filters, startTime, endTime, value) {
         }).data;
         GLOBAL_DATA.forEach(obj => {
             // переводим в локальную и преобразовываем в миллисекунды (т.к. xAxis в master в датах умеет работать только с мс)
-            obj['_time'] = new Date(obj['_time']).getTime()
-            obj['x'] = obj['_time']
+            obj['start_time'] = new Date(obj['start_time']).getTime()
+            obj['x'] = obj['start_time']
         })
         // console.log(GLOBAL_DATA[0]);
         // console.log(getTotalJobs(GLOBAL_DATA))

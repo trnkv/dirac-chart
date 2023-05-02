@@ -13,7 +13,7 @@ function prepareData(inputData) {
                     id: obj.id,
                     x: obj.cpu_norm + (Math.random() * (0.05 - -0.05 + 1) - 0.05),
                     y: obj.wall_time,
-                    _time: obj._time
+                    start_time: obj.start_time
                 });
                 // SERIES_DATA[i].marker = { 'radius': Number($("#select_marker_size").val()) };
                 return;
@@ -25,7 +25,7 @@ function prepareData(inputData) {
                 id: obj.id,
                 x: obj.cpu_norm + (Math.random() * (0.05 - -0.05 + 1) - 0.05),
                 y: obj.wall_time,
-                _time: obj._time
+                start_time: obj.start_time
             }],
             // marker: {
             //     radius: Number($("#select_marker_size").val())
@@ -42,7 +42,9 @@ function setLegendSymbolSize(size) {
 }
 
 function msFormat(milliseconds) {
-    return Highcharts.dateFormat('%e %b %Y, %H:%M:%S', new Date(milliseconds));
+    if (milliseconds !== 'undefined')
+        return Highcharts.dateFormat('%e %b %Y, %H:%M:%S', new Date(milliseconds));
+    return milliseconds;
 }
 
 function DrawHighChart(INPUT_DATA, filter) {
@@ -75,7 +77,7 @@ function DrawHighChart(INPUT_DATA, filter) {
                 enabled: false
             },
             title: {
-                text: msFormat(INPUT_DATA[0]['_time']) + ' - ' + msFormat(INPUT_DATA[INPUT_DATA.length - 1]['_time']),
+                text: msFormat(INPUT_DATA[0]['start_time']) + ' - ' + msFormat(INPUT_DATA[INPUT_DATA.length - 1]['start_time']),
                 align: 'left'
             },
             subtitle: {
@@ -152,12 +154,20 @@ function DrawHighChart(INPUT_DATA, filter) {
                     return (
                         "<b>CPU norm:</b> " + dataPoint.cpu_norm + "<br>" +
                         "<b>Wall Time:</b> " + secondsToDhms(dataPoint.wall_time) + "<br>" +
-                        "<b>Start Time:</b> " + msFormat(dataPoint._time) + "<br>" +
+                        "<b>Start Time:</b> " + msFormat(dataPoint.start_time) + "<br>" +
+                        "<b>End Time:</b> " + msFormat(dataPoint.end_time) + "<br>" +
+                        "<b>Total Time:</b> " + msFormat(dataPoint.total_time) + "<br>" +
+                        "<b>CPU Time:</b> " + msFormat(dataPoint.cpu_time) + "<br>" +
+                        "<b>CPU MHz:</b> " + msFormat(dataPoint.cpu_mhz) + "<br>" +
                         "<b>Site:</b> " + dataPoint.site + "<br>" +
                         "<b>Owner:</b> " + dataPoint.owner + "<br>" +
-                        "<b>Job_ID:</b> " + dataPoint.job_id + "<br>" +
+                        "<b>Job ID:</b> " + dataPoint.job_id + "<br>" +
+                        "<b>Job Name:</b> " + dataPoint.job_name + "<br>" +
+                        "<b>Job Group:</b> " + dataPoint.job_group + "<br>" +
                         "<b>Hostname:</b> " + dataPoint.hostname + "<br>" +
                         "<b>CPU model:</b> " + dataPoint.cpu_model + "<br>" +
+                        "<b>Memory:</b> " + dataPoint.memory + "<br>" +
+                        "<b>Memory Used:</b> " + dataPoint.memory_used + "<br>" +
                         "<b>Status:</b> " + dataPoint.status
                     );
                 },
@@ -206,7 +216,7 @@ function DrawHighChart(INPUT_DATA, filter) {
 
                             // change detailData for detailChart
                             detailData = SERIES_DATA.map(series => {
-                                return {...series, data: series.data.filter((obj) => obj._time >= min && obj._time <= max) }
+                                return {...series, data: series.data.filter((obj) => obj.start_time >= min && obj.start_time <= max) }
                             });
                             detailData = detailData.filter((series) => series.data.length > 0);
 

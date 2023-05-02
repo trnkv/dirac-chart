@@ -38,9 +38,9 @@ def get_data_by_filters(request):
         header=0
     )
     df = df.fillna("undefined")
-    df['_time'] = pd.to_datetime(df['_time'])
-    df = df[df["_time"].between(start_datetime_iso, end_datetime_iso)]
-    df = df.sort_values(by='_time', ascending=True)
+    df['start_time'] = pd.to_datetime(df['start_time'])
+    df = df[df["start_time"].between(start_datetime_iso, end_datetime_iso)]
+    df = df.sort_values(by='start_time', ascending=True)
     cols_vals = [filter.split("_") for filter in filters]
     
     filters = {}
@@ -54,7 +54,7 @@ def get_data_by_filters(request):
         df = df.loc[df[key].isin(value)]
     
     df['id'] = df.index
-    # df['x'] = df['_time']  # это делается на клиентской стороне с учетом локальной тайм-зоны
+    # df['x'] = df['start_time']  # это делается на клиентской стороне с учетом локальной тайм-зоны
     df['y'] = df['wall_time']
     
     response = HttpResponse(content_type='text/csv')

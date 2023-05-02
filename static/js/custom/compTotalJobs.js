@@ -3,7 +3,7 @@ function getTotalJobs(data) {
     
     result = {}
     var allData = data.slice();
-    var jobs = allData.map(obj => [new Date(obj._time), new Date(Math.trunc(obj._time + obj.wall_time))]);
+    var jobs = allData.map(obj => [new Date(obj.start_time), new Date(Math.trunc(obj.start_time + obj.wall_time))]);
     // var hour = Math.floor((jobs[0][0] / (1000 * 60 * 60)) % 24);
     // var timePoint = new Date(jobs[0][0].getFullYear(), jobs[0][0].getMonth(), jobs[0][0].getDate(), hour, 0, 0, 0);
     var periodStart = new Date(jobs[0][0].getFullYear(), jobs[0][0].getMonth(), jobs[0][0].getDate(), jobs[0][0].getHours(), 0, 0, 0);
