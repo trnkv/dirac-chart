@@ -1,6 +1,8 @@
 from datetime import datetime
-from django.shortcuts import render
 import pandas as pd
+
+from django.conf import settings
+from django.shortcuts import render
 from django.http import JsonResponse, HttpResponse
 
 
@@ -9,10 +11,7 @@ def index(request):
 
 
 def get_filters(request):
-    df = pd.read_csv(
-        'static/data/data.csv',
-        header=0,
-    )
+    df = pd.read_csv(settings.CSV_DATA_PATH)
     filters = {
         "hostnames": df['hostname'].fillna("undefined").unique().tolist(),
         "models": df['cpu_model'].fillna("undefined").unique().tolist(),
@@ -20,6 +19,7 @@ def get_filters(request):
         "statuses": df['status'].fillna("undefined").unique().tolist(),
         "owners": df['owner'].fillna("undefined").unique().tolist(),
     }
+    print(filters)
     return JsonResponse({'filters': filters})
 
 
@@ -33,14 +33,11 @@ def get_data_by_filters(request):
     start_datetime_iso = start_datetime.isoformat()
     end_datetime_iso = end_datetime.isoformat()
 
-    df = pd.read_csv(
-        'static/data/data.csv',
-        header=0
-    )
+    df = pd.read_csv(settings.CSV_DATA_PATH)
     df = df.fillna("undefined")
-    df['_time'] = pd.to_datetime(df['_time'])
-    df = df[df["_time"].between(start_datetime_iso, end_datetime_iso)]
-    df = df.sort_values(by='_time', ascending=True)
+    df['start_time'] = pd.to_datetime(df['start_time'])
+    df = df[df["start_time"].between(start_datetime_iso, end_datetime_iso)]
+    df = df.sort_values(by='start_time', ascending=True)
     cols_vals = [filter.split("_") for filter in filters]
     
     filters = {}
