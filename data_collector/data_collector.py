@@ -121,15 +121,18 @@ def get_merged_data(df_old, df_new):
   debug("Last start_time in CSV: " + str(df_old['start_time'].max()))
   debug("Last start_time in new data: " + str(df_new['start_time'].max()))
   df_new = df_new.loc[df_new['start_time'] > bottom_time_frame]
+  df_really_old = df_old.loc[df_old['start_time'] < bottom_time_frame]
+  df_old_for_merging = df_old.loc[df_old['start_time'] >= bottom_time_frame]
   debug("Rows after removing old rows from data: " + str(len(df_new)) )
   
-  merged_df = pd.merge(df_old, df_new, on='job_id', how='outer')
+  merged_df = pd.merge(df_old_for_merging, df_new, on='job_id', how='outer')
   for col in df_new.columns:
     if col != 'job_id':
         merged_df[col] = merged_df.apply(lambda row: row[f'{col}_y'] if not pd.isna(row[f'{col}_y']) else row[f'{col}_x'], axis=1)
         merged_df = merged_df.drop([f'{col}_x', f'{col}_y'], axis=1)
-
+  merged_df = df_really_old.append(merged_df, ignore_index=True)
   info("Rows added: " + str(len(merged_df) - len(df_old)))
+  merged_df.sort_values("job_id")
   return merged_df
 
 def save_dataframe_to_csv(df):
