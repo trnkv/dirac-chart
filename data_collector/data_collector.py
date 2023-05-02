@@ -79,7 +79,7 @@ def convert_data_to_pandas(data):
       "start_time": row[5],
       "end_time": row[6],
       "status": row[7],
-      "cpu_notm": float(row[8]),
+      "cpu_norm": float(row[8]),
       "cpu_time": float(row[9]),
       "cpu_mhz": float(row[10]),
       "wall_time": float(row[11]),
@@ -117,8 +117,10 @@ def load_csv_database():
     return None
 
 def get_merged_data(df_old, df_new):
-  bottom_time_frame = df_old['end_time'].max() - datetime.timedelta(days=7)
-  df_new = df_new.loc[df_new['end_time'] > bottom_time_frame]
+  bottom_time_frame = df_old['start_time'].max() - datetime.timedelta(days=7)
+  debug("Last start_time in CSV: " + str(df_old['start_time'].max()))
+  debug("Last start_time in new data: " + str(df_new['start_time'].max()))
+  df_new = df_new.loc[df_new['start_time'] > bottom_time_frame]
   debug("Rows after removing old rows from data: " + str(len(df_new)) )
   
   merged_df = pd.merge(df_old, df_new, on='job_id', how='outer')
