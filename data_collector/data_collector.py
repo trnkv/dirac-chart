@@ -25,6 +25,26 @@ config = {}
 with open(CONFIG_PATH) as json_file:
   config = json.load(json_file)
 
+dtypes = {
+  'job_id': int,
+  'owner': str,
+  'job_name': str,
+  'job_group': str,
+  'site': str,
+  'start_time': str,
+  'end_time': str,
+  'status': str,
+  'cpu_norm': float,
+  'cpu_time': float,
+  'cpu_mhz': float,
+  'wall_time': float,
+  'total_time': float,
+  'hostname': str,
+  'cpu_model': str,
+  'memory': float,
+  'memory_used': float
+}
+
 
 #========================================
 # Logger initialization
@@ -106,7 +126,7 @@ def filter_dataframe(df):
 
 def load_csv_database():
   if os.path.isfile(config['csv_data_path']):
-    df_old = pd.read_csv(config['csv_data_path'])
+    df_old = pd.read_csv(config['csv_data_path'], dtype=dtypes)
     df_old['start_time'] = pd.to_datetime(df_old['start_time'], utc=True)
     df_old['end_time'] = pd.to_datetime(df_old['end_time'], utc=True)
     
@@ -117,17 +137,22 @@ def load_csv_database():
     return None
 
 def get_merged_data(df_old, df_new):
-  bottom_time_frame = df_old['end_time'].max() - datetime.timedelta(days=7)
-  df_new = df_new.loc[df_new['end_time'] > bottom_time_frame]
+  bottom_time_frame = df_old['start_time'].max() - datetime.timedelta(days=7)
+  debug("Last start_time in CSV: " + str(df_old['start_time'].max()))
+  debug("Last start_time in new data: " + str(df_new['start_time'].max()))
+  df_new = df_new.loc[df_new['start_time'] > bottom_time_frame]
+  df_really_old = df_old.loc[df_old['start_time'] < bottom_time_frame]
+  df_old_for_merging = df_old.loc[df_old['start_time'] >= bottom_time_frame]
   debug("Rows after removing old rows from data: " + str(len(df_new)) )
   
-  merged_df = pd.merge(df_old, df_new, on='job_id', how='outer')
+  merged_df = pd.merge(df_old_for_merging, df_new, on='job_id', how='outer')
   for col in df_new.columns:
     if col != 'job_id':
         merged_df[col] = merged_df.apply(lambda row: row[f'{col}_y'] if not pd.isna(row[f'{col}_y']) else row[f'{col}_x'], axis=1)
         merged_df = merged_df.drop([f'{col}_x', f'{col}_y'], axis=1)
-
+  merged_df = pd.concat([df_really_old, merged_df])
   info("Rows added: " + str(len(merged_df) - len(df_old)))
+  merged_df.sort_values("job_id")
   return merged_df
 
 def save_dataframe_to_csv(df):
