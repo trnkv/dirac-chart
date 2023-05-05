@@ -1,5 +1,6 @@
 from datetime import datetime
 import pandas as pd
+from pprint import pprint as pp
 
 from django.conf import settings
 from django.shortcuts import render
@@ -38,7 +39,7 @@ def get_data_by_filters(request):
     df['start_time'] = pd.to_datetime(df['start_time'])
     df = df[df["start_time"].between(start_datetime_iso, end_datetime_iso)]
     df = df.sort_values(by='start_time', ascending=True)
-    cols_vals = [filter.split("_") for filter in filters]
+    cols_vals = [filter.split(":") for filter in filters]
     
     filters = {}
     for pair in cols_vals:
@@ -46,7 +47,7 @@ def get_data_by_filters(request):
             filters[pair[0]].append(pair[1])
         else:
             filters[pair[0]] = [pair[1]]
-    
+
     for key, value in filters.items():
         df = df.loc[df[key].isin(value)]
     
