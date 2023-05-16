@@ -136,15 +136,15 @@
         var filters = response["filters"];
 
         filters["sites"].forEach((site) => {
-            drawFilter("#site-selector p", `site_${site}`, site);
+            drawFilter("#site-selector p", `site:${site}`, site);
             FILTERS.push(`site:${site}`);
         });
         filters["owners"].forEach((owner) => {
-            drawFilter("#owner-selector p", `owner_${owner}`, owner);
+            drawFilter("#owner-selector p", `owner:${owner}`, owner);
             FILTERS.push(`owner:${owner}`);
         });
         filters["statuses"].forEach((status) => {
-            drawFilter("#status-selector p", `status_${status}`, status);
+            drawFilter("#status-selector p", `status:${status}`, status);
             FILTERS.push(`status:${status}`);
         });
 
