@@ -156,8 +156,8 @@ function DrawHighChart(INPUT_DATA, filter) {
                         "<b>Wall Time:</b> " + secondsToDhms(dataPoint.wall_time) + "<br>" +
                         "<b>Start Time:</b> " + msFormat(dataPoint.start_time) + "<br>" +
                         "<b>End Time:</b> " + msFormat(dataPoint.end_time) + "<br>" +
-                        "<b>Total Time:</b> " + msFormat(dataPoint.total_time) + "<br>" +
-                        "<b>CPU Time:</b> " + msFormat(dataPoint.cpu_time) + "<br>" +
+                        "<b>Total Time:</b> " + secondsToDhms(dataPoint.total_time) + "<br>" +
+                        "<b>CPU Time:</b> " + secondsToDhms(dataPoint.cpu_time) + "<br>" +
                         "<b>CPU MHz:</b> " + msFormat(dataPoint.cpu_mhz) + "<br>" +
                         "<b>Site:</b> " + dataPoint.site + "<br>" +
                         "<b>Owner:</b> " + dataPoint.owner + "<br>" +

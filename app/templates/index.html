@@ -43,7 +43,6 @@
     <div class="container-fluid">
         <div class="row">
             <div class="col-3">
-                <button class="btn btn-primary btn_show_chart" style="display: none">Show</button>
                 <div id="time-selector" class="card">
                     <div class="card-body">
                         <h5 class="card-title">Time selector</h5>
@@ -165,15 +164,27 @@
 
         startDefaultDownload();
 
+        // рисует кнопку Show рядом с чекбоксом
         function showTooltip(el) {
-            $(".tooltip").hide();
+            $(".tooltip").remove();
+            var show_btn = $("<button />", {
+                text: 'Show',
+                class: 'btn btn-primary',
+                click: function () {
+                    if (FILTERS.length > 0) {
+                        $("#data_loading_preloader").css("display", "block");
+                        getDataByFilters(FILTERS, START_TIME, END_TIME);
+                    };
+                    $(".tooltip").remove();
+                }
+            });
             var tooltip = new bootstrap.Tooltip(el, {
                 template: '<div class="tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner"></div></div>',
+                placement: 'auto',
                 html: true,
-                title: $(".btn_show_chart"),
+                title: show_btn,
                 trigger: "click manual",
             });
-            $(".btn_show_chart").css("display", "block");
             tooltip.show();
         }
 
@@ -220,14 +231,6 @@
             detailChart.redraw();
             setLegendSymbolSize(legendSymbolSize);
             detailChart.hideLoading();
-        });
-
-        // ======================== BUTTON "SHOW" TO BUILD CHART AFTER FILTER SELECTING ========================
-        $(".btn_show_chart:last").on("click", function() {
-            if (FILTERS.length > 0) {
-                $("#data_loading_preloader").css("display", "block");
-                getDataByFilters(FILTERS, START_TIME, END_TIME);
-            }
         });
     });
 </script>
