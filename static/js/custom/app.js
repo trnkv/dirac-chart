@@ -17,6 +17,11 @@ var DiracChart = function() {
             var error_time = new Date(time);
             return moment.duration(now - error_time).humanize();
         },
+
+        waitForRender: function() {
+            setTimeout(console.log, 50);
+        },
+
     };
 
     this.Model = {
@@ -26,6 +31,7 @@ var DiracChart = function() {
         endTime: null,
         checkedFilters: null,
         colorFilter: null,
+        done_handler: null,
 
         initiateModel: function() {
             this.startTime = app.Configuration.startTime.format(app.Configuration.datetime_format);
@@ -63,7 +69,7 @@ var DiracChart = function() {
             })
         },
 
-        getDataByFilters: function() {
+        getDataByFilters: function(done_handler) {
             this.colorFilter = $("#select_color_filter").val();
             $.ajax({
                 xhr: function() {
@@ -82,17 +88,50 @@ var DiracChart = function() {
                     "start": app.Model.startTime,
                     "end": app.Model.endTime
                 },
-                async: false,
+                async: true,
             }).done(function(response) {
-                $("#data_loading_preloader").css("display", "none");
-                $("#spinner p").text("loading");
                 app.Model.dataCSV = response;
-                app.Model.parseDataCSV();
+                app.Model.done_handler = done_handler;
+                $("#spinner p").text("processing");
+                setTimeout(app.Model.processData, 100);
             });
         },
+
+        getAllData: function(done_handler) {
+            $.ajax({
+                xhr: function() {
+                    var xhr = new window.XMLHttpRequest();
+                    xhr.addEventListener("progress", function(evt) {
+                        if (evt.lengthComputable) {
+                            // var percentComplete = Math.round(evt.loaded / evt.total);
+                            $("#spinner p").text(`${Math.round(evt.loaded * 9.54 * Math.pow(10, -7))} MB`);
+                        }
+                    }, false);
+                    return xhr;
+                },
+                url: "get_all_data",
+                async: true,
+            }).done(function(response) {
+                app.Model.dataCSV = response;
+                app.Model.done_handler = done_handler;
+                $("#spinner p").text("processing");
+                setTimeout(app.Model.processData, 100);
+            });
+        },
+
+        processData: function() {
+            app.Model.parseDataCSV();
+            //console.log(app.Model.data);
+            app.Model.done_handler();
+        }
     };
 
     this.View = {
+
+        waitForRender: function() {
+            console.log("waiting for render");
+        },
+
         showTooltip: function(el) {
             $(".tooltip").remove();
             var show_btn = $("<button />", {
@@ -162,6 +201,14 @@ var DiracChart = function() {
                 END_TIME = picker.endDate.format(dt_format);
                 this.showTooltip($(this));
             });
+
+            $('#btn_load_all').click(function(){
+                app.Controller.loadAllData();
+            });
+
+            $('#btn_load_filtered').click(function(){
+                app.Controller.loadFilteredData();
+            });
         },
 
         drawFilter: function(selector, value, text) {
@@ -189,7 +236,7 @@ var DiracChart = function() {
 
         drawData: function(data) {
             if (data.length > 0) {
-                DrawHighChart(data, app.Model.colorFilter);
+                DrawHighChart(data);
             } else {
                 $('#highcharts-container').html('<h4 class="text-primary">There is no data on this request</h4>\
                 <p>Change the request parameters and try again</p>');
@@ -212,15 +259,24 @@ var DiracChart = function() {
             app.View.initiateView();
             app.Model.getFilters();
             app.View.drawFilters(app.Model.filters);
-            this.getDataByFilters();           
         },
 
-        getDataByFilters: function() {
+        loadAllData: function() {
+            $("#data_loading_preloader").css("display", "block");
+            app.Model.getAllData(this.dataLoaded);
+        },
+
+        loadDataByFilters: function() {
             let checkedFilters = app.View.getCheckedFilters();
             app.Model.setCheckedFilters(checkedFilters);
-            app.Model.getDataByFilters();
-            app.View.drawData(app.Model.data);
+            app.Model.getDataByFilters(this.dataLoaded);
         },
+
+        dataLoaded: function() {
+            app.View.drawData(app.Model.data);
+            $("#data_loading_preloader").css("display", "none");
+        },
+
 
     }
 }

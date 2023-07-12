@@ -26,6 +26,22 @@ def get_filters(request):
     return JsonResponse({'filters': filters})
 
 cash = None
+def get_all_data(request):
+    global cash
+    if cash != None:
+        return cash
+
+    df = pd.read_csv(settings.CSV_DATA_PATH)
+    df['id'] = df.index
+
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename=filtered_data.csv'
+    df.to_csv(path_or_buf=response, index=False)
+    if cash == None:
+        cash = response
+    return cash
+
+
 def get_data_by_filters(request):
     global cash
     if cash != None:
@@ -40,16 +56,16 @@ def get_data_by_filters(request):
     # переводим её в ISO
     # start_datetime_iso = start_datetime.isoformat()
     # end_datetime_iso = end_datetime.isoformat()
-    print(time.time()-_start_time)
+    print(time.time() - _start_time)
     _start_time = time.time()
     print("load CSV")
     df = pd.read_csv(settings.CSV_DATA_PATH)
-    #df = df.fillna("undefined")
-    #df['start_time'] = pd.to_datetime(df['start_time'])
-    #df = df[df["start_time"].between(start_datetime_iso, end_datetime_iso)]
-    #df = df.sort_values(by='start_time', ascending=True)
+    # df = df.fillna("undefined")
+    # df['start_time'] = pd.to_datetime(df['start_time'])
+    # df = df[df["start_time"].between(start_datetime_iso, end_datetime_iso)]
+    # df = df.sort_values(by='start_time', ascending=True)
     # cols_vals = [filter.split(":") for filter in filters]
-    
+
     # filters = {}
     # for pair in cols_vals:
     #     if pair[0] in filters.keys():
@@ -59,23 +75,24 @@ def get_data_by_filters(request):
 
     # for key, value in filters.items():
     #     df = df.loc[df[key].isin(value)]
-    
-    print(time.time()-_start_time)
+
+    print(time.time() - _start_time)
     _start_time = time.time()
     print("renaming fields")
     df['id'] = df.index
     # df['x'] = df['start_time']  # это делается на клиентской стороне с учетом локальной тайм-зоны
     df['y'] = df['wall_time']
-    print(time.time()-_start_time)
+    print(time.time() - _start_time)
     _start_time = time.time()
     print("Crafting response")
-    
+
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename=filtered_data.csv'
     df.to_csv(path_or_buf=response, index=False)
-    print(time.time()-_start_time)
+    print(time.time() - _start_time)
     _start_time = time.time()
     print("Returning response")
     if cash == None:
         cash = response
     return cash
+
