@@ -34,8 +34,8 @@ def get_data_by_filters(request):
     print("preliminary preparation")
     filters = request.GET.getlist('filters[]')
     # приходит с клиента локализованная дата
-    start_datetime = datetime.strptime(request.GET.get('start'), '%Y-%m-%d %H:%M:%S')
-    end_datetime = datetime.strptime(request.GET.get('end'), '%Y-%m-%d %H:%M:%S')
+    # start_datetime = datetime.strptime(request.GET.get('start'), '%Y-%m-%d %H:%M:%S')
+    # end_datetime = datetime.strptime(request.GET.get('end'), '%Y-%m-%d %H:%M:%S')
 
     # переводим её в ISO
     # start_datetime_iso = start_datetime.isoformat()
