@@ -18,24 +18,30 @@ var DiracChart = function() {
             return moment.duration(now - error_time).humanize();
         },
 
-        waitForRender: function() {
-            setTimeout(console.log, 50);
-        },
-
     };
 
     this.Model = {
-        data: null,
+        base_data: null,
+        data_filtered: null,
         filters: null,
         startTime: null,
         endTime: null,
-        checkedFilters: null,
         colorFilter: null,
         done_handler: null,
 
         initiateModel: function() {
             this.startTime = app.Configuration.startTime.format(app.Configuration.datetime_format);
             this.endTime = moment().format(app.Configuration.datetime_format);
+        },
+
+        reset: function() {
+            this.base_data = null;
+            this.data_filtered = null;
+            this.filters = null;
+            this.startTime = null;
+            this.endTime = null;
+            this.colorFilter = null;
+            this.done_handler = null;            
         },
 
         getFilters: function() {
@@ -51,25 +57,22 @@ var DiracChart = function() {
             })
         },
 
-        setCheckedFilters: function(checkedFilters) {
-            this.checkedFilters = checkedFilters;
-        },
-
         parseDataCSV: function() {
-            this.data = Papa.parse(this.dataCSV, {
+            this.base_data = Papa.parse(this.dataCSV, {
                 header: true,
                 skipEmptyLines: true,
                 dynamicTyping: true,
                 fastMode: true,
             }).data;
-            this.data.forEach(obj => {
+            this.base_data.forEach(obj => {
                 // переводим в локальную и преобразовываем в миллисекунды (т.к. xAxis в master в датах умеет работать только с мс)
                 obj['start_time'] = new Date(obj['start_time']).getTime()
                 obj['x'] = obj['start_time']
-            })
+            })            
+            this.data_filtered = Object.assign([], this.base_data);
         },
 
-        getDataByFilters: function(done_handler) {
+        getDataByFilters: function(done_handler, checkedFilters, startTime, endTime) {
             this.colorFilter = $("#select_color_filter").val();
             $.ajax({
                 xhr: function() {
@@ -84,9 +87,9 @@ var DiracChart = function() {
                 },
                 url: "get_data_by_filters",
                 data: {
-                    "filters[]": app.Model.checkedFilters,
-                    "start": app.Model.startTime,
-                    "end": app.Model.endTime
+                    "filters[]": checkedFilters,
+                    "start": startTime,
+                    "end": endTime
                 },
                 async: true,
             }).done(function(response) {
@@ -123,37 +126,29 @@ var DiracChart = function() {
             app.Model.parseDataCSV();
             //console.log(app.Model.data);
             app.Model.done_handler();
-        }
+        },
+
+        applyFilters: function(checked_filters) {
+            filters = {
+                'site': [],
+                'owner': [],
+                'status': [],
+            };
+            checked_filters.forEach(element => {
+                category = element.split(':')[0];
+                value = element.split(':')[1];
+                filters[category].push(value);
+            });
+            app.Model.data_filtered = [];
+            app.Model.data_filtered = app.Model.base_data.filter(function (el) {
+                return filters['site'].includes(el.site) &&
+                    filters['owner'].includes(el.owner) &&
+                    filters['status'].includes(el.status);
+            });            
+        },
     };
 
     this.View = {
-
-        waitForRender: function() {
-            console.log("waiting for render");
-        },
-
-        showTooltip: function(el) {
-            $(".tooltip").remove();
-            var show_btn = $("<button />", {
-                text: 'Show',
-                class: 'btn btn-primary',
-                click: function () {
-                    if (FILTERS.length > 0) {
-                        $("#data_loading_preloader").css("display", "block");
-                        getDataByFilters(FILTERS, START_TIME, END_TIME);
-                    };
-                    $(".tooltip").remove();
-                }
-            });
-            var tooltip = new bootstrap.Tooltip(el, {
-                template: '<div class="tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner"></div></div>',
-                placement: 'auto',
-                html: true,
-                title: show_btn,
-                trigger: "click manual",
-            });
-            tooltip.show();
-        },
 
         createDateRangePicker: function() {
             var start = moment(new Date(2020, 0, 1));
@@ -194,12 +189,11 @@ var DiracChart = function() {
 
         initiateView: function() {
             var start_end = this.createDateRangePicker();
-            START_TIME = start_end[0].format(app.Configuration.datetime_format);
-            END_TIME = start_end[1].format(app.Configuration.datetime_format);
+            app.View.start_time = start_end[0].format(app.Configuration.datetime_format);
+            app.View.end_time = start_end[1].format(app.Configuration.datetime_format);
             $('#reportrange').on('apply.daterangepicker', function(ev, picker) {
-                START_TIME = picker.startDate.format(dt_format);
-                END_TIME = picker.endDate.format(dt_format);
-                this.showTooltip($(this));
+                app.View.start_time = picker.startDate.format(app.Configuration.datetime_format);
+                app.View.end_time = picker.endDate.format(app.Configuration.datetime_format);
             });
 
             $('#btn_load_all').click(function(){
@@ -207,14 +201,42 @@ var DiracChart = function() {
             });
 
             $('#btn_load_filtered').click(function(){
-                app.Controller.loadFilteredData();
+                app.Controller.loadDataByFilters();
+            });
+
+            $('#btn_reset').click(function(){
+                app.Controller.reset();
+            });
+
+            $('#btn_select_all_sites').click(function(){
+                app.View.check_all("site");
+            });
+
+            $('#btn_select_none_sites').click(function(){
+                app.View.check_none("site");
+            });
+
+            $('#btn_select_all_owners').click(function(){
+                app.View.check_all("owner");
+            });
+
+            $('#btn_select_none_owners').click(function(){
+                app.View.check_none("owner");
+            });
+
+            $('#btn_select_all_statuses').click(function(){
+                app.View.check_all("status");
+            });
+
+            $('#btn_select_none_statuses').click(function(){
+                app.View.check_none("status");
             });
         },
 
-        drawFilter: function(selector, value, text) {
+        drawFilter: function(selector, value, text) {            
             $(selector).append(`\
                 <div class="form-check">\
-                <input class="form-check-input" type="checkbox" checked value="${value}" id="${value}">\
+                <input class="form-check-input ${value.split(':')[0]}-checkbox" type="checkbox" checked value="${value}" id="${value}">\
                 <label class="form-check-label" for="${value}">\
                     ${text}\
                 </label>\
@@ -232,6 +254,10 @@ var DiracChart = function() {
                     this.drawFilter(id_name, value, caption);
                 }
             }
+
+            $("input[type=checkbox]").change(function() {
+                app.Controller.filtersChanged();        
+            });
         },
 
         drawData: function(data) {
@@ -248,9 +274,24 @@ var DiracChart = function() {
             $("input[type=checkbox]:checked").each(function() {
                 checkedFilters.push($(this).val())
             });
-            console.log(checkedFilters);       
-            return checkedFilters;
-        }
+                      return checkedFilters;
+        },
+
+        leaveOnlyCheckedFilters: function() {
+            $("input[type=checkbox]:not(:checked)").parent().remove();
+        },
+
+        check_all: function(category) {
+            $(`input[type=checkbox].${category}-checkbox`).prop('checked', true);
+        },
+
+        check_none: function(category) {
+            $(`input[type=checkbox].${category}-checkbox`).prop('checked', false);
+        },
+
+        reset: function() {
+            $("input[type=checkbox]").parent().remove();
+        },
     };
 
     this.Controller = {
@@ -267,16 +308,30 @@ var DiracChart = function() {
         },
 
         loadDataByFilters: function() {
+            app.View.leaveOnlyCheckedFilters();
             let checkedFilters = app.View.getCheckedFilters();
-            app.Model.setCheckedFilters(checkedFilters);
-            app.Model.getDataByFilters(this.dataLoaded);
+            start_time = app.View.start_time;
+            end_time = app.View.end_time;
+            app.Model.getDataByFilters(this.dataLoaded, checkedFilters, start_time, end_time);
         },
 
         dataLoaded: function() {
-            app.View.drawData(app.Model.data);
+            app.View.drawData(app.Model.data_filtered);
             $("#data_loading_preloader").css("display", "none");
         },
 
+        reset: function() {
+            app.Model.reset();
+            app.View.reset();
+            app.Controller.initiateApp();            
+        },
 
+        filtersChanged: function() {
+            if (app.Model.base_data) {
+                let checkedFilters = app.View.getCheckedFilters();
+                app.Model.applyFilters(checkedFilters);
+                app.View.drawData(app.Model.data_filtered);
+            }
+        },
     }
 }
