@@ -10,26 +10,22 @@ function prepareData(inputData) {
         for (var i = 0; i < SERIES_DATA.length; i++) {
             if (SERIES_DATA[i].name == obj[color_filter]) {
                 SERIES_DATA[i].data.push({
-                    id: obj.id,
-                    x: obj.cpu_norm + (Math.random() * (0.05 - -0.05 + 1) - 0.05),
+                    job_id: obj.job_id,
+                    x: obj.cpu_norm + Math.random() * 0.1 - 0.05,
                     y: obj.wall_time,
                     start_time: obj.start_time
                 });
-                // SERIES_DATA[i].marker = { 'radius': Number($("#select_marker_size").val()) };
                 return;
             }
         }
         SERIES_DATA.push({
             name: obj[color_filter],
             data: [{
-                id: obj.id,
-                x: obj.cpu_norm + (Math.random() * (0.05 - -0.05 + 1) - 0.05),
+                job_id: obj.job_id,
+                x: obj.cpu_norm + Math.random() * 0.1 - 0.05,
                 y: obj.wall_time,
                 start_time: obj.start_time
             }],
-            // marker: {
-            //     radius: Number($("#select_marker_size").val())
-            // }
         });
     });
 }
@@ -48,8 +44,8 @@ function msFormat(milliseconds) {
 }
 
 function DrawHighChart(INPUT_DATA, filter) {
-    color_filter = (filter === undefined) ? filter = "site" : filter;
-    // data_by_color_filter = [...new Set(data.map((obj) => obj[color_filter]))];
+    color_filter = "site";
+    $("#select_color_filter").val("site");
 
     Highcharts.setOptions({
         time: {
@@ -150,7 +146,7 @@ function DrawHighChart(INPUT_DATA, filter) {
             },
             tooltip: {
                 formatter: function() {
-                    var dataPoint = INPUT_DATA.filter(obj => obj.id === this.point.id)[0];
+                    var dataPoint = INPUT_DATA.filter(obj => obj.job_id === this.point.job_id)[0];
                     return (
                         "<b>CPU norm:</b> " + dataPoint.cpu_norm + "<br>" +
                         "<b>Wall Time:</b> " + secondsToDhms(dataPoint.wall_time) + "<br>" +
