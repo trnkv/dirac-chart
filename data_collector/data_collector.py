@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 SQL_QUERRY = """
-select J.JobID as id, J.Owner as owner, J.JobName as job_name, J.JobGroup as job_group, J.Site as site, J.StartExecTime as start_time, J.EndExecTime as end_time, J.Status as status,   JP.Value as cpu_norm,  JPCT.Value as cpu_time, JPMhz.Value as cpu_time, JPWC.Value as wall_time, JPTT.Value as total_time, JPHN.Value as hostname, JPMN.Value as model, JPM.Value as memory, JPMU.Value as memory_used FROM Jobs as J  LEFT JOIN JobParameters as JP using (JobID)  LEFT JOIN JobParameters as JPCT using (JobID)  LEFT JOIN JobParameters as JPMhz using (JobID) LEFT JOIN JobParameters as JPWC using (JobID) LEFT JOIN JobParameters as JPTT using (JobID) LEFT JOIN JobParameters as JPHN using (JobID) LEFT JOIN JobParameters as JPMN using (JobID) LEFT JOIN JobParameters as JPM using (JobID) LEFT JOIN JobParameters as JPMU using (JobID) where JP.Name='CPUNormalizationFactor' and  JPCT.Name='NormCPUTime(s)' and JPMhz.Name='CPU(MHz)' and JPWC.Name='WallClockTime(s)' and JPTT.Name='TotalCPUTime(s)' and JPHN.Name='HostName' and JPMN.Name='ModelName' and JPM.Name='Memory(kB)' and JPMU.Name='MemoryUsed(kb)';"""
+select J.JobID as id, J.Owner as owner, J.JobName as job_name, J.JobGroup as job_group, J.Site as site, J.StartExecTime as start_time, J.EndExecTime as end_time, J.Status as status, JP.Value as cpu_norm,  JPCT.Value as cpu_time, JPWC.Value as wall_time, JPTT.Value as total_time, JPHN.Value as hostname, JPMN.Value as model, JPM.Value as memory, JPMU.Value as memory_used FROM Jobs as J  LEFT JOIN JobParameters as JP using (JobID)  LEFT JOIN JobParameters as JPCT using (JobID)  LEFT JOIN JobParameters as JPWC using (JobID) LEFT JOIN JobParameters as JPTT using (JobID) LEFT JOIN JobParameters as JPHN using (JobID) LEFT JOIN JobParameters as JPMN using (JobID) LEFT JOIN JobParameters as JPM using (JobID) LEFT JOIN JobParameters as JPMU using (JobID) where JP.Name='CPUNormalizationFactor' and  JPCT.Name='NormCPUTime(s)' and JPWC.Name='WallClockTime(s)' and JPTT.Name='TotalCPUTime(s)' and JPHN.Name='HostName' and JPMN.Name='ModelName' and JPM.Name='Memory(kB)' and JPMU.Name='MemoryUsed(kb)';"""
 
 CONFIG_PATH = "/opt/dirac-job-analytics/config.json"
 
@@ -35,10 +35,9 @@ dtypes = {
   'end_time': str,
   'status': str,
   'cpu_norm': float,
-  'cpu_time': float,
-  'cpu_mhz': float,
-  'wall_time': float,
-  'total_time': float,
+  'cpu_time': int,
+  'wall_time': int,
+  'total_time': int,
   'hostname': str,
   'cpu_model': str,
   'memory': float,
@@ -100,14 +99,13 @@ def convert_data_to_pandas(data):
       "end_time": row[6],
       "status": row[7],
       "cpu_norm": float(row[8]),
-      "cpu_time": float(row[9]),
-      "cpu_mhz": float(row[10]),
-      "wall_time": float(row[11]),
-      "total_time": float(row[12]),
-      "hostname": row[13].decode('UTF-8'),
-      "cpu_model": row[14].decode('UTF-8'),
-      "memory": float(row[15]),
-      "memory_used": float(row[16]),
+      "cpu_time": int(float(row[9])),
+      "wall_time": int(float(row[10])),
+      "total_time": int(float(row[11])),
+      "hostname": row[12].decode('UTF-8'),
+      "cpu_model": row[13].decode('UTF-8'),
+      "memory": float(row[14]),
+      "memory_used": float(row[15]),
     }
     result.append(job_info)
 

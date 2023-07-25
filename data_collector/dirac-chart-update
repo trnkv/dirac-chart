@@ -1,0 +1,2 @@
+0 * * * * root /usr/bin/python3 /opt/dirac-job-analytics/data_collector.py >> /var/log/dirac-chart-update_cron.log 2>&1
+
