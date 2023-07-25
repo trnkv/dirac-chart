@@ -1,0 +1,314 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Dirac Chart</title>
+    <meta charset="utf-8" />
+    <!-- JQuery 3.6.3 -->
+    <script src="{% static 'js/jquery-3.6.3.js' %}"></script>
+    <!-- Moment JS -->
+    <script src="{% static 'js/moment.min.js' %}"></script>
+    <!-- PapaParse -->
+    <script src="{% static 'js/papaparse.js' %}"></script>
+    <!-- Bootstrap 5.3 -->
+    <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet"/>
+    <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+    <!-- FontAwesome -->
+    <link href="{% static 'js/fontawesome-free-6.3.0-web/css/all.min.css' %}" rel="stylesheet" />
+    <!-- DateRangePicker -->
+    <link href="{% static 'js/daterangepicker/daterangepicker.css' %}" rel="stylesheet" />
+    <script src="{% static 'js/daterangepicker/daterangepicker.js' %}"></script>
+    <!-- HighCharts v11.0.1 -->
+    <script src="{% static 'js/highcharts.js' %}"></script>
+    <script src="{% static 'js/exporting.js' %}"></script>
+    <script src="{% static 'js/boost.js' %}"></script>
+    <!-- Draggable Legend -->
+    <script src="{% static 'js/draggable-legend.js' %}"></script>
+    <!-- DataTables -->
+    <link href="{% static 'css/datatables.min.css' %}" rel="stylesheet"/>
+    <script src="{% static 'js/datatables.min.js' %}"></script>
+    <script src="{% static 'js/pdfmake.min.js' %}"></script>
+    <script src="{% static 'js/vfs_fonts.js' %}"></script>
+    <!-- Custom functions -->
+    <script src="{% static 'js/custom/app.js' %}"></script>
+    <script src="{% static 'js/custom/createDateRangePicker.js' %}"></script>
+    <script src="{% static 'js/custom/secondsToDhms.js' %}"></script>
+    <script src="{% static 'js/custom/drawFilter.js' %}"></script>
+    <script src="{% static 'js/custom/DrawHighChart.js' %}"></script>
+    <script src="{% static 'js/custom/getDataByFilters.js' %}"></script>
+    <script src="{% static 'js/custom/compTotalJobs.js' %}"></script>
+</head>
+
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-3">
+                <div id="time-selector" class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Time selector</h5>
+                        <div id="reportrange" class="input-group-text">
+                            <i class="fa fa-calendar"></i><span></span> <i class="fa fa-caret-down"></i>
+                        </div>
+                        <button id="btn_load_all">
+                            Load All
+                        </button>
+                        <button id="btn_load_filtered">
+                            Load filtered
+                        </button>
+                        <button id="btn_reset">
+                            Reset
+                        </button>
+                    </div>
+                </div>
+                <div id="site-selector" class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Site selector</h5>
+                        <p class="card-text"></p>
+                        <div class="form-check form-switch">
+                            <button id="btn_select_all_sites">
+                                All
+                            </button>
+                            <button id="btn_select_none_sites">
+                                None
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div id="owner-selector" class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Owner selector</h5>
+                        <p class="card-text"></p>
+                        <div class="form-check form-switch">
+                            <button id="btn_select_all_owners">
+                                All
+                            </button>
+                            <button id="btn_select_none_owners">
+                                None
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div id="status-selector" class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Status selector</h5>
+                        <p class="card-text"></p>
+                        <div class="form-check form-switch">
+                            <button id="btn_select_all_statuses">
+                                All
+                            </button>
+                            <button id="btn_select_none_statuses">
+                                None
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="row">
+                    <div class="col">
+                        <div class="input-group mb-3">
+                            <label class="input-group-text" for="select_marker_size">
+                                <span><i class="fa-solid fa-paintbrush"></i> Color filter</span>
+                            </label>
+                            <select id="select_color_filter" class="form-select">
+                                <option selected value="site">SITE</option>
+                                <option value="owner">OWNER</option>
+                                <option value="status">STATUS</option>
+                                <option value="hostname">HOSTNAME</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="input-group mb-3">
+                            <label class="input-group-text" for="select_marker_size">
+                                <span><i class="fa-solid fa-circle-dot"></i> Marker size: </span>
+                            </label>
+                            <input id="select_marker_size" class="flex-grow-1 mx-1" type="range" min="0" step="0.1" max="5" value="1">
+                            <h5><span class="badge bg-primary"><output>1.0</output></span></h5>
+                        </div>
+                    </div>
+                </div>
+                <div id="data_loading_preloader">
+                    <div class="semilayer"></div>
+                    <div id="spinner">
+                        <p>loading</p>
+                        <span></span>
+                    </div>
+                </div>
+                <figure class="highcharts-figure">
+                    <div id="highcharts-container" style="position: relative;"></div>
+                </figure>
+            </div>
+        </div>
+    </div>
+</body>
+<script>
+        var diracChart = new DiracChart();
+
+        diracChart.StartApp();
+
+        // choosing color filter
+        $("#select_color_filter").on('change', function() {
+            detailChart.showLoading();
+            DrawHighChart(GLOBAL_DATA, $(this).val());
+            detailChart.hideLoading();
+        });
+
+        // choosing marker size
+        $("#select_marker_size").on('input', function() {
+            $("output").html($(this).val());
+        });
+        $("#select_marker_size").on('change', function() {
+            detailChart.showLoading();
+            detailChart.series.map(series => series.update({
+                    marker: {
+                        radius: Number($(this).val())
+                    }
+                }, false)
+            );
+            detailChart.redraw();
+            setLegendSymbolSize(legendSymbolSize);
+            detailChart.hideLoading();
+        });
+</script>
+<style>
+    .container-fluid {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    .tooltip {
+        z-index: 1;
+    }
+    
+    .tooltip-inner {
+        padding: 0 !important;
+    }
+    
+    .form-switch>.form-check-label {
+        font-weight: bold;
+    }
+    
+    #reportrange {
+        background: #fff;
+        cursor: pointer;
+        border: 1px solid #ccc;
+        width: 100%;
+        white-space: break-spaces;
+    }
+    
+    #reportrange>span {
+        padding: 5px;
+    }
+    
+    .daterangepicker {
+        position: absolute;
+        z-index: 2;
+        background-color: #fff;
+    }
+    
+    #detail-container,
+    #master-container {
+        position: absolute;
+        overflow: unset !important;
+        width: 100%;
+    }
+    
+    #master-container {
+        height: 20vh;
+    }
+    
+    .semilayer {
+        background-color: #fff;
+        margin: 0 auto;
+        opacity: 0.7;
+        /* Прозрачность в IE */
+        filter: alpha(Opacity=70);
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 3;
+    }
+    
+    #spinner {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        z-index: 4;
+        transform: translate(-50%, -50%);
+        backdrop-filter: blur(2px);
+        width: 150px;
+        height: 150px;
+        background: transparent;
+        border: 3px solid #adb5bd;
+        border-radius: 50%;
+        text-align: center;
+        line-height: 150px;
+        font-family: sans-serif;
+        font-size: 20px;
+        color: #0d6dfd;
+        letter-spacing: 4px;
+        text-transform: uppercase;
+        text-shadow: 0 0 10px #0d6dfd;
+        box-shadow: 0 0 20px rgba(0, 0, 0, .5);
+    }
+    
+    #spinner:before {
+        content: '';
+        position: absolute;
+        top: -3px;
+        left: -3px;
+        width: 100%;
+        height: 100%;
+        border: 3px solid transparent;
+        border-radius: 50%;
+        animation: animateC 2s linear infinite;
+    }
+    
+    #spinner>span {
+        display: block;
+        position: absolute;
+        top: calc(50% - 2px);
+        left: 50%;
+        width: 50%;
+        height: 4px;
+        background: transparent;
+        transform-origin: left;
+        animation: animate 2s linear infinite;
+    }
+    
+    #spinner>span:before {
+        content: '';
+        position: absolute;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #0d6dfd;
+        top: -6px;
+        right: -8px;
+        box-shadow: 0 0 20px #0d6dfd;
+    }
+    
+    @keyframes animateC {
+        0% {
+            transform: rotate(0deg);
+        }
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+    
+    @keyframes animate {
+        0% {
+            transform: rotate(45deg);
+        }
+        100% {
+            transform: rotate(405deg);
+        }
+    }
+</style>
+
+</html>
