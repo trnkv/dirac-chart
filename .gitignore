@@ -161,3 +161,7 @@ cython_debug/
 
 # data
 static/data
+
+# settings
+dirac_chart/settings.py
+dirac_chart/settings.py
