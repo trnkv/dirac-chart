@@ -82,5 +82,6 @@ def get_data_by_filters(request):
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename=filtered_data.csv'
     df.to_csv(path_or_buf=response, index=False)
+    print('returning response...')
     return response
 
