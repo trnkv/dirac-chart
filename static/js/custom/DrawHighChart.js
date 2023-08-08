@@ -1,14 +1,12 @@
 var masterChart, detailChart;
-var SERIES_DATA = [],
-    color_filter;
+var SERIES_DATA = [];
 var legendSymbolSize = 10;
 
-function prepareData(inputData) {
+function prepareData(inputData, colorBy) {
     SERIES_DATA = [];
-    if (color_filter === undefined) color_filter = $("#select_color_filter").val();
     inputData.forEach((obj) => {
         for (var i = 0; i < SERIES_DATA.length; i++) {
-            if (SERIES_DATA[i].name == obj[color_filter]) {
+            if (SERIES_DATA[i].name == obj[colorBy]) {
                 SERIES_DATA[i].data.push({
                     job_id: obj.job_id,
                     x: obj.cpu_norm + Math.random() * 0.1 - 0.05,
@@ -19,7 +17,7 @@ function prepareData(inputData) {
             }
         }
         SERIES_DATA.push({
-            name: obj[color_filter],
+            name: obj[colorBy],
             data: [{
                 job_id: obj.job_id,
                 x: obj.cpu_norm + Math.random() * 0.1 - 0.05,
@@ -30,11 +28,23 @@ function prepareData(inputData) {
     });
 }
 
-function setLegendSymbolSize(size) {
+function setLegendSymbolSize(symbolSize) {
     $(detailChart.series).each(function() {
-        this.legendItem.symbol.attr('width', size);
-        this.legendItem.symbol.attr('height', size);
+        this.legendItem.symbol.attr('width', symbolSize);
+        this.legendItem.symbol.attr('height', symbolSize);
     });
+}
+
+function redrawByMarkerSize(markerSize) {
+    detailChart.showLoading();
+    detailChart.series.map(series => series.update({
+        marker: {
+            radius: markerSize
+        }
+    }, false));
+    detailChart.redraw();
+    setLegendSymbolSize(legendSymbolSize);
+    detailChart.hideLoading();
 }
 
 function msFormat(milliseconds) {
@@ -43,9 +53,7 @@ function msFormat(milliseconds) {
     return milliseconds;
 }
 
-function DrawHighChart(INPUT_DATA, filter) {
-    color_filter = "site";
-    $("#select_color_filter").val("site");
+function DrawHighChart(INPUT_DATA, markerSize, color_filter) {
 
     Highcharts.setOptions({
         time: {
@@ -116,7 +124,7 @@ function DrawHighChart(INPUT_DATA, filter) {
                 },
                 labels: {
                     formatter: function() {
-                        return this.value/1000 + "K"
+                        return this.value / 1000 + "K"
                     },
                     x: 5
                 },
@@ -125,7 +133,7 @@ function DrawHighChart(INPUT_DATA, filter) {
             plotOptions: {
                 scatter: {
                     marker: {
-                        radius: 1, // Number($("#select_marker_size").val())
+                        radius: markerSize,
                         symbol: "circle",
                         states: {
                             hover: {
@@ -196,7 +204,7 @@ function DrawHighChart(INPUT_DATA, filter) {
                         selection: function(event) {
                             try {
                                 var extremesObject = event.xAxis[0];
-                            } catch (e){
+                            } catch (e) {
                                 var extremesObject = event.target.axes[0];
                                 this.xAxis[0].setExtremes(
                                     totalJobsPerHour[0][0],
@@ -354,7 +362,10 @@ function DrawHighChart(INPUT_DATA, filter) {
     $('#select_color_filter, #select_marker_size').prop("disabled", false);
 
     // sets SERIES_DATA: objects grouped by colorFilter
-    prepareData(INPUT_DATA);
+
+    var colorBy = (color_filter === undefined || color_filter === null) ? $("#select_colorBy").val() : color_filter;
+
+    prepareData(INPUT_DATA, colorBy);
 
     totalJobsPerHour = getTotalJobs(INPUT_DATA);
 
