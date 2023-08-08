@@ -320,6 +320,7 @@ var DiracChart = function() {
 
         reset: function() {
             $("input[type=checkbox]").parent().remove();
+            $('#highcharts-container').html('');
         },
 
         redrawByColorFilter: function() {
