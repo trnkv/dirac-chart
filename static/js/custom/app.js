@@ -30,11 +30,13 @@ var DiracChart = function() {
         colorBy: null,
         markerSize: null,
         done_handler: null,
+        recent_actions: null,
 
         initiateModel: function() {
             this.startTime = app.Configuration.startTime.format(app.Configuration.datetime_format);
             this.endTime = moment().format(app.Configuration.datetime_format);
             this.markerSize = app.Configuration.markerSize;
+            this.recent_actions = [];
         },
 
         reset: function() {
@@ -46,6 +48,7 @@ var DiracChart = function() {
             this.colorBy = null;
             this.markerSize = null;
             this.done_handler = null;
+            this.recent_actions = null;
         },
 
         getFilters: function() {
@@ -150,6 +153,10 @@ var DiracChart = function() {
                     filters['status'].includes(el.status);
             });
         },
+
+        addRecentAction: function(action_type, action_value) {
+            app.Model.recent_actions.push({ 'action_type': action_type, 'action_value': action_value });
+        }
     };
 
     this.View = {
@@ -203,18 +210,25 @@ var DiracChart = function() {
             var start_end = this.createDateRangePicker();
             app.View.start_time = start_end[0].format(app.Configuration.datetime_format);
             app.View.end_time = start_end[1].format(app.Configuration.datetime_format);
-            $("#select_marker_size").val(app.Model.markerSize);
+
             $('#reportrange').on('apply.daterangepicker', function(ev, picker) {
                 app.View.start_time = picker.startDate.format(app.Configuration.datetime_format);
                 app.View.end_time = picker.endDate.format(app.Configuration.datetime_format);
+                app.Controller.recordRecentAction($(this));
             });
+
+            $("#select_marker_size").val(app.Model.markerSize);
+
+            $("#li_recent_actions").find(".badge").css("display", "none");
 
             $('#btn_load_all').click(function() {
                 app.Controller.loadAllData();
+                app.Controller.recordRecentAction($(this));
             });
 
             $('#btn_load_filtered').click(function() {
                 app.Controller.loadDataByFilters();
+                app.Controller.recordRecentAction($(this));
             });
 
             $('#btn_reset').click(function() {
@@ -223,31 +237,39 @@ var DiracChart = function() {
 
             $('#btn_select_all_sites').click(function() {
                 app.View.check_all("site");
+                app.Controller.recordRecentAction($(this));
             });
 
             $('#btn_select_none_sites').click(function() {
                 app.View.check_none("site");
+                app.Controller.recordRecentAction($(this));
             });
 
             $('#btn_select_all_owners').click(function() {
                 app.View.check_all("owner");
+                app.Controller.recordRecentAction($(this));
             });
 
             $('#btn_select_none_owners').click(function() {
                 app.View.check_none("owner");
+                app.Controller.recordRecentAction($(this));
             });
 
             $('#btn_select_all_statuses').click(function() {
                 app.View.check_all("status");
+                app.Controller.recordRecentAction($(this));
             });
 
             $('#btn_select_none_statuses').click(function() {
                 app.View.check_none("status");
+                app.Controller.recordRecentAction($(this));
             });
 
             $("#select_colorBy").on('change', function() {
+                app.Controller.recordRecentAction($(this));
                 app.Controller.colorBy_Changed($(this).val());
                 app.View.redrawByColorFilter();
+
             });
 
             // change marker size
@@ -255,8 +277,10 @@ var DiracChart = function() {
                 app.View.displayMarkerSize((Number($(this).val())).toFixed(1));
             });
             $("#select_marker_size").on('change', function() {
+                app.Controller.recordRecentAction($(this));
                 app.Controller.markerSize_Changed(Number($(this).val()));
                 app.View.changeMarkerSize();
+
             });
         },
 
@@ -285,6 +309,7 @@ var DiracChart = function() {
 
             $("input[type=checkbox]").change(function() {
                 app.Controller.filtersChanged();
+                app.Controller.recordRecentAction($(this));
             });
         },
 
@@ -321,6 +346,10 @@ var DiracChart = function() {
         reset: function() {
             $("input[type=checkbox]").parent().remove();
             $('#highcharts-container').html('');
+            $('#li_recent_actions').find(".dropdown-menu").html('\
+                <span class="dropdown-item dropdown-header">Recent actions <i class="fa-solid fa-arrow-down-long"></i></span>\
+                <div class="dropdown-divider"></div>');
+            $('#li_recent_actions').find(".badge").text(0);
         },
 
         redrawByColorFilter: function() {
@@ -333,8 +362,20 @@ var DiracChart = function() {
 
         changeMarkerSize: function() {
             redrawByMarkerSize(app.Model.markerSize); // in DrawHighChart.js
+        },
+
+        drawRecentActions: function() {
+            var last_action = app.Model.recent_actions[app.Model.recent_actions.length - 1];
+            $("#li_recent_actions").find(".dropdown-menu").append(`\
+                <a href="#" class="dropdown-item">\
+                    ${last_action['action_value']}\
+                    <span class="float-right text-muted text-sm">${last_action['action_type']}</span>\
+                </a>`);
+            var actions_number_increased = parseInt($("#li_recent_actions").find(".badge").text()) + 1;
+            $("#li_recent_actions").find(".badge").text(actions_number_increased);
+            $("#li_recent_actions").find(".badge").css('display', 'block');
         }
-    };
+    }
 
     this.Controller = {
         initiateApp: function() {
@@ -383,6 +424,62 @@ var DiracChart = function() {
 
         markerSize_Changed: function(markerSize_value) {
             app.Model.markerSize = markerSize_value;
-        }
+        },
+
+        recordRecentAction: function(triggered_element) {
+            var action_type = new Date().getHours() + ":" + new Date().getMinutes() + ":" + new Date().getSeconds() + " | ",
+                action_value = "";
+
+            switch (triggered_element.attr('id')) {
+                case "reportrange":
+                    action_type += "Time period";
+                    action_value = triggered_element.text();
+                    break;
+                case "btn_select_all_sites":
+                case "btn_select_none_sites":
+                    action_type += "Sites";
+                    action_value = triggered_element.parent().find("label").text();
+                    break;
+                case "btn_select_all_owners":
+                case "btn_select_none_owners":
+                    action_type += "Owners";
+                    action_value = triggered_element.parent().find("label").text();
+                    break;
+                case "btn_select_all_statuses":
+                case "btn_select_none_statuses":
+                    action_type += "Statuses";
+                    action_value = triggered_element.parent().find("label").text();
+                    break;
+                case "select_colorBy":
+                    action_type += "Color";
+                    action_value = "By " + triggered_element.find("option:selected").text();;
+                    break;
+                case "select_marker_size":
+                    action_type += "Marker size";
+                    action_value = $("#marker_size_value").text();
+                    break;
+            }
+
+            switch (true) {
+                case /site:/.test(triggered_element.attr('id')):
+                case /owner:/.test(triggered_element.attr('id')):
+                case /status:/.test(triggered_element.attr('id')):
+                    var category = triggered_element.attr('id').split(':')[0];
+                    action_type += category.charAt(0).toUpperCase() + category.slice(1);
+                    if (!triggered_element.is(":checked")) {
+                        action_value = "- " + triggered_element.attr('id').split(':')[1];
+                    } else {
+                        action_value = "+ " + triggered_element.attr('id').split(':')[1];
+                    }
+                    break;
+                case /btn_load/.test(triggered_element.attr('id')):
+                    action_type += "Load data";
+                    action_value = triggered_element.text();
+                    break;
+            }
+
+            app.Model.addRecentAction(action_type, action_value);
+            app.View.drawRecentActions();
+        },
     }
 }
