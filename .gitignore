@@ -160,4 +160,7 @@ cython_debug/
 #.idea/
 
 # data
-static/data
+static/data.csv
+
+# settings
+dirac_chart/settings.py
