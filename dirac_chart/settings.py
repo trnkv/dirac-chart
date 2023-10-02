@@ -127,12 +127,12 @@ STATICFILES_DIRS= [
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # load config
-#import os
-#import json
-#with open("/opt/dirac-job-analytics/config.json", 'r') as config:
-#    config = json.load(config)
-#    CSV_DATA_PATH = config['csv_data_path']
-#    # обратиться к этой переменной из python-кода:
-#    # settings.CSV_DATA_PATH
+import os
+import json
+with open("/opt/dirac-job-analytics/config.json", 'r') as config:
+   config = json.load(config)
+   CSV_DATA_PATH = config['csv_data_path']
+   # обратиться к этой переменной из python-кода:
+   # settings.CSV_DATA_PATH
 
-CSV_DATA_PATH = BASE_DIR / "static/data.csv"
+# CSV_DATA_PATH = BASE_DIR / "static/data.csv"
