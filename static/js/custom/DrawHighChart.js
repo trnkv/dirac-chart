@@ -201,6 +201,14 @@ function DrawHighChart(INPUT_DATA, markerSize, color_filter) {
             boost: {
                 useGPUTranslations: true,
                 usePreAllocated: true,
+            },
+            exporting: {
+                sourceWidth: 1920,
+                sourceHeight: 1080,
+                // scale: 2 (default)
+                // chartOptions: {
+                //     subtitle: null
+                // }
             }
         });
         setLegendSymbolSize(legendSymbolSize);
