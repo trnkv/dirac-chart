@@ -117,7 +117,7 @@ function DrawHighChart(INPUT_DATA, markerSize, color_filter) {
             },
             xAxis: {
                 title: {
-                    text: "CPU norm",
+                    text: "DB12 value",
                 },
                 labels: {
                     format: "{value}",
