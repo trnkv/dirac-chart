@@ -1,6 +1,6 @@
 var masterChart, detailChart;
 var SERIES_DATA = [],
-    count_of_points = 0;
+    ZOOMED_DATA;
 var legendSymbolSize = 10;
 
 function prepareData(inputData, colorBy) {
@@ -121,7 +121,20 @@ function DrawHighChart(INPUT_DATA, markerSize, color_filter) {
                 },
                 labels: {
                     format: "{value}",
-                }
+                },
+                // events: {
+                //     afterSetExtremes: function(e){
+                //         var zoom_minX = e.min,
+                //             zoom_maxX = e.max;
+                //         console.log(zoom_minX, zoom_maxX);
+                //         ZOOMED_DATA = SERIES_DATA.map(series => {
+                //             return {...series, data: series.data.filter((obj) => obj.x >= zoom_minX && obj.x <= zoom_maxX) }
+                //         });
+                //         console.log(SERIES_DATA);
+                //         console.log(ZOOMED_DATA);
+                //         detailChart.setTitle(null, { text: `Count of points: <b>${zoomed_data.length}</b>`});
+                //     }
+                // }
             },
             yAxis: {
                 title: {
@@ -165,9 +178,9 @@ function DrawHighChart(INPUT_DATA, markerSize, color_filter) {
                         "<b>Wall Time:</b> " + secondsToDhms(dataPoint.wall_time) + "<br>" +
                         "<b>Start Time:</b> " + msFormat(dataPoint.start_time) + "<br>" +
                         "<b>End Time:</b> " + msFormat(dataPoint.end_time) + "<br>" +
-                        "<b>Total Time:</b> " + secondsToDhms(dataPoint.total_time) + "<br>" +
-                        "<b>CPU Time:</b> " + secondsToDhms(dataPoint.cpu_time) + "<br>" +
-                        "<b>CPU MHz:</b> " + msFormat(dataPoint.cpu_mhz) + "<br>" +
+                        // "<b>Total Time:</b> " + secondsToDhms(dataPoint.total_time) + "<br>" +
+                        // "<b>CPU Time:</b> " + secondsToDhms(dataPoint.cpu_time) + "<br>" +
+                        // "<b>CPU MHz:</b> " + msFormat(dataPoint.cpu_mhz) + "<br>" +
                         "<b>Site:</b> " + dataPoint.site + "<br>" +
                         "<b>Owner:</b> " + dataPoint.owner + "<br>" +
                         "<b>Job ID:</b> " + dataPoint.job_id + "<br>" +
