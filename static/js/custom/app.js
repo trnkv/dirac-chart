@@ -77,6 +77,7 @@ var DiracChart = function() {
                 obj['x'] = obj['start_time']
             })
             this.data_filtered = Object.assign([], this.base_data);
+            this.countOfPoints = this.data_filtered.length;
         },
 
         getDataByFilters: function(done_handler, checkedFilters, startTime, endTime) {
@@ -280,7 +281,6 @@ var DiracChart = function() {
                 app.Controller.recordRecentAction($(this));
                 app.Controller.markerSize_Changed(Number($(this).val()));
                 app.View.changeMarkerSize();
-
             });
         },
 

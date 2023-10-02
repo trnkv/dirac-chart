@@ -1,5 +1,6 @@
 var masterChart, detailChart;
-var SERIES_DATA = [];
+var SERIES_DATA = [],
+    count_of_points = 0;
 var legendSymbolSize = 10;
 
 function prepareData(inputData, colorBy) {
@@ -86,7 +87,11 @@ function DrawHighChart(INPUT_DATA, markerSize, color_filter) {
             },
             subtitle: {
                 text: `Count of points: <b>${INPUT_DATA.length}</b>`,
-                align: 'left'
+                align: 'center',
+                style: {
+                    fontWeight: 'bold',
+                    fontSize: '1em'
+                }
             },
             legend: {
                 enabled: true,

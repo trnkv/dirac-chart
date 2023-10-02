@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-62f76_)vj-f84)t6zcf_ske0z(+t6i#hhn^_f6!=$8kdby$@7m
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["10.220.18.25"]
+ALLOWED_HOSTS = ["10.220.18.25", "127.0.0.1"]
 
 
 # Application definition
@@ -127,12 +127,12 @@ STATICFILES_DIRS= [
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # load config
-import os
-import json
-with open("/opt/dirac-job-analytics/config.json", 'r') as config:
-    config = json.load(config)
-    CSV_DATA_PATH = config['csv_data_path']
+#import os
+#import json
+#with open("/opt/dirac-job-analytics/config.json", 'r') as config:
+#    config = json.load(config)
+#    CSV_DATA_PATH = config['csv_data_path']
 #    # обратиться к этой переменной из python-кода:
 #    # settings.CSV_DATA_PATH
 
-#CSV_DATA_PATH = "/opt/dirac-job-analytics/data.csv"
+CSV_DATA_PATH = BASE_DIR / "static/data.csv"
