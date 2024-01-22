@@ -68,15 +68,11 @@ function DrawHighChart(INPUT_DATA, markerSize, color_filter) {
         detailChart = Highcharts.chart('detail-container', {
             chart: {
                 marginBottom: 120,
-                reflow: false,
                 marginLeft: 50,
                 marginRight: 20,
                 type: "scatter",
                 zoomType: "xy",
-                height: '60%',
-                style: {
-                    position: 'absolute'
-                }
+                height: '50%'
             },
             credits: {
                 enabled: false

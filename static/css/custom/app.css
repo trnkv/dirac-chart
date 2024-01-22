@@ -1,0 +1,141 @@
+.container-fluid {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+.tooltip {
+    z-index: 1;
+}
+
+.tooltip-inner {
+    padding: 0 !important;
+}
+
+.form-switch>.form-check-label {
+    font-weight: bold;
+}
+
+#li_recent_actions .dropdown-menu {
+    max-height: 400px;
+    overflow: auto;
+}
+
+#li_recent_actions a {
+    cursor: default;
+}
+
+#reportrange {
+    background: transparent;
+    cursor: pointer;
+    border: 0px;
+    width: 100%;
+    white-space: break-spaces;
+    color: #c2c7d0;
+}
+
+#reportrange>span {
+    padding: 5px;
+}
+
+.daterangepicker {
+    position: absolute;
+    z-index: 1039;
+    background-color: #fff;
+}
+
+#master-container {
+    height: 20vh;
+}
+
+.semilayer {
+    background-color: #fff;
+    margin: 0 auto;
+    opacity: 0.7;
+    /* Прозрачность в IE */
+    filter: alpha(Opacity=70);
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 3;
+}
+
+#spinner {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    z-index: 4;
+    transform: translate(-50%, -50%);
+    backdrop-filter: blur(2px);
+    width: 150px;
+    height: 150px;
+    background: transparent;
+    border: 3px solid #adb5bd;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 150px;
+    font-family: sans-serif;
+    font-size: 20px;
+    color: #0d6dfd;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    text-shadow: 0 0 10px #0d6dfd;
+    box-shadow: 0 0 20px rgba(0, 0, 0, .5);
+}
+
+#spinner:before {
+    content: '';
+    position: absolute;
+    top: -3px;
+    left: -3px;
+    width: 100%;
+    height: 100%;
+    border: 3px solid transparent;
+    border-radius: 50%;
+    animation: animateC 2s linear infinite;
+}
+
+#spinner>span {
+    display: block;
+    position: absolute;
+    top: calc(50% - 2px);
+    left: 50%;
+    width: 50%;
+    height: 4px;
+    background: transparent;
+    transform-origin: left;
+    animation: animate 2s linear infinite;
+}
+
+#spinner>span:before {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #0d6dfd;
+    top: -6px;
+    right: -8px;
+    box-shadow: 0 0 20px #0d6dfd;
+}
+
+@keyframes animateC {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes animate {
+    0% {
+        transform: rotate(45deg);
+    }
+
+    100% {
+        transform: rotate(405deg);
+    }
+}

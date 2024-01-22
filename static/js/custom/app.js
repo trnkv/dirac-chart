@@ -125,7 +125,7 @@ var DiracChart = function() {
             }).done(function(response) {
                 app.Model.dataCSV = response;
                 app.Model.done_handler = done_handler;
-                $("#spinner p").text("processing");
+                $("#spinner p").text("process");
                 setTimeout(app.Model.processData, 100);
             });
         },
@@ -322,6 +322,37 @@ var DiracChart = function() {
             }
         },
 
+        drawDataTable: function(data) {
+            if (table) table.destroy();
+            var dataWithoutX = data.map(obj => {
+                // Create a new object without the specified key
+                var newObj = { ...obj };
+                delete newObj['x'];
+                return newObj;
+              });
+            var dataKeys = [...new Set(dataWithoutX.flatMap(obj => Object.keys(obj)))];
+            var table = new DataTable('#datatable', {
+                data: dataWithoutX,
+                columns: dataKeys.map(key => ({'data': key, 'title': key})),
+                paging: true,
+                lengthChange: true,
+                searching: true,
+                ordering: true,
+                info: true,
+                autoWidth: true,
+                pageLength: 50,
+                responsive: true,
+                dom: 'Blfrtip',
+                buttons: [
+                    {extend: 'searchBuilder', className: 'bg-primary'},
+                    {extend: 'csv', className: ''},
+                    {extend: 'excel', className: ''},
+                    {extend: 'pdf', className: ''},
+                    {extend: 'print', className: ''}
+                ],
+            });
+        },
+
         getCheckedFilters: function() {
             var checkedFilters = [];
             $("input[type=checkbox]:checked").each(function() {
@@ -401,6 +432,7 @@ var DiracChart = function() {
 
         dataLoaded: function() {
             app.View.drawData(app.Model.data_filtered, app.Model.markerSize);
+            app.View.drawDataTable(app.Model.data_filtered);
             app.View.hidePreloader();
         },
 
