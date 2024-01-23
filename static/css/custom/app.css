@@ -47,6 +47,10 @@
     height: 20vh;
 }
 
+#datatable {
+    width: 100% !important;
+}
+
 .semilayer {
     background-color: #fff;
     margin: 0 auto;

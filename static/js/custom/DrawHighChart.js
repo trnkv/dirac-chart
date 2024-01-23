@@ -1,6 +1,6 @@
 var masterChart, detailChart;
-var SERIES_DATA = [],
-    ZOOMED_DATA;
+var SERIES_DATA = [];
+    // ZOOMED_DATA;
 var legendSymbolSize = 10;
 
 function prepareData(inputData, colorBy) {
@@ -54,7 +54,8 @@ function msFormat(milliseconds) {
     return milliseconds;
 }
 
-function DrawHighChart(INPUT_DATA, markerSize, color_filter) {
+// ======================================= main function =======================================
+function DrawHighChart(app, INPUT_DATA, markerSize, color_filter) {
 
     Highcharts.setOptions({
         time: {
@@ -277,6 +278,9 @@ function DrawHighChart(INPUT_DATA, markerSize, color_filter) {
 
                             xAxis.setExtremes(min, max);
                             this.showResetZoom();
+
+                            app.View.resetDataTable();
+                            app.View.drawDataTable(INPUT_DATA.filter(obj => obj.start_time >= min && obj.start_time <= max), colorBy);
 
                             return false;
                         }
