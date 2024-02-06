@@ -20,6 +20,9 @@ var DiracChart = function() {
             lengthChange: true,
             searching: true,
             ordering: true,
+            order: [
+                [1, "desc"]
+            ], // By default order by points count
             info: true,
             responsive: true,
             retrieve: true,

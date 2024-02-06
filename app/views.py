@@ -15,12 +15,13 @@ def index(request):
 
 def get_filters(request):
     df = pd.read_csv(settings.CSV_DATA_PATH)
+    df = df.fillna("undefined")
     filters = {
-        #"hostname": df['hostname'].fillna("undefined").unique().tolist(),
-        #"model": df['cpu_model'].fillna("undefined").unique().tolist(),
-        "site": df['site'].fillna("undefined").unique().tolist(),
-        "status": df['status'].fillna("undefined").unique().tolist(),
-        "owner": df['owner'].fillna("undefined").unique().tolist(),
+        #"hostname": df['hostname'].unique().tolist(),
+        #"model": df['cpu_model'].unique().tolist(),
+        "site": df['site'].unique().tolist(),
+        "status": df['status'].unique().tolist(),
+        "owner": df['owner'].unique().tolist(),
     }
     print(filters)
     return JsonResponse({'filters': filters})

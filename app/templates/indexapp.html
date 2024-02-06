@@ -50,7 +50,8 @@
     <script src="{% static 'js/custom/compTotalJobs.js' %}"></script>
 </head>
 
-<body class="sidebar-mini layout-fixed bg-white" style="height: auto;">
+<!--<body class="sidebar-mini layout-fixed bg-white" style="height: auto;">-->
+<body class="sidebar-mini bg-white">
     <div class="wrapper">
         <nav class="main-header navbar navbar-expand navbar-white navbar-light">
             <ul class="navbar-nav">
@@ -101,7 +102,7 @@
                 </li>
             </ul>
         </nav>
-        <aside class="main-sidebar sidebar-dark-secondary elevation-1">
+        <aside class="main-sidebar sidebar-dark-secondary">
             <a href="/" class="brand-link">
                 <span class="brand-text font-weight-light">Dirac-Chart</span>
             </a>
@@ -110,15 +111,7 @@
                 <button id="btn_load_filtered" class="btn btn-primary btn-sm">Load filtered</button>
                 <button id="btn_reset" class="btn btn-danger btn-sm">Reset</button>
             </div>
-            <div class="sidebar">
-                <div class="os-resize-observer-host observed">
-                    <div class="os-resize-observer" style="left: 0px; right: auto;"></div>
-                </div>
-                <div class="os-size-auto-observer observed" style="height: calc(100% + 1px); float: left;">
-                    <div class="os-resize-observer"></div>
-                </div>
-                <div class="os-content-glue"></div>
-
+            <div class="sidebar overflow-auto">
                 <nav class="mt-2">
                     <ul class="nav nav-pills nav-sidebar nav-compact flex-column" data-widget="treeview" role="menu" data-accordion="false">
                         <li class="nav-item menu-open">
@@ -131,7 +124,7 @@
                             </a>
                             <ul class="nav nav-treeview">
                                 <li class="nav-item">
-                                    <div id="reportrange" class="input-group-text ">
+                                    <div id="reportrange" class="input-group-text">
                                         <span></span> <i class="fa fa-caret-down"></i>
                                     </div>
                                 </li>
@@ -215,19 +208,6 @@
                     </ul>
                 </nav>
             </div>
-    </div>
-    <div class="os-scrollbar os-scrollbar-horizontal os-scrollbar-unusable os-scrollbar-auto-hidden">
-        <div class="os-scrollbar-track">
-            <div class="os-scrollbar-handle" style="width: 100%; transform: translate(0px, 0px);"></div>
-        </div>
-    </div>
-    <div class="os-scrollbar os-scrollbar-vertical os-scrollbar-auto-hidden">
-        <div class="os-scrollbar-track">
-            <div class="os-scrollbar-handle" style="height: 22.8456%; transform: translate(0px, 0px);"></div>
-        </div>
-    </div>
-    <div class="os-scrollbar-corner"></div>
-    </div>
     </aside>
 
     <div class="content-wrapper">
