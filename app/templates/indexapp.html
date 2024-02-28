@@ -23,7 +23,7 @@
     <link href="{% static 'js/daterangepicker/daterangepicker.css' %}" rel="stylesheet" />
     <script src="{% static 'js/daterangepicker/daterangepicker.js' %}"></script>
     <!-- HighCharts v11.0.1 -->
-    <script src="{% static 'js/highcharts.js' %}"></script>
+    <script src="{% static 'js/highcharts_v.11.0.1.js' %}"></script>
     <script src="{% static 'js/exporting.js' %}"></script>
     <script src="{% static 'js/boost.js' %}"></script>
     <!-- Draggable Legend -->
@@ -42,12 +42,7 @@
     <link href="{% static 'css/custom/app.css' %}" rel="stylesheet" />
     <!-- Custom functions -->
     <script src="{% static 'js/custom/app.js' %}"></script>
-    <script src="{% static 'js/custom/createDateRangePicker.js' %}"></script>
-    <script src="{% static 'js/custom/secondsToDhms.js' %}"></script>
-    <script src="{% static 'js/custom/drawFilter.js' %}"></script>
-    <script src="{% static 'js/custom/DrawHighChart.js' %}"></script>
-    <script src="{% static 'js/custom/getDataByFilters.js' %}"></script>
-    <script src="{% static 'js/custom/compTotalJobs.js' %}"></script>
+    <script src="{% static 'js/custom/visualization.js' %}"></script>
 </head>
 
 <!--<body class="sidebar-mini layout-fixed bg-white" style="height: auto;">-->
@@ -80,7 +75,7 @@
                 </li>
                 <li class="nav-item">
                     <a class="nav-link">
-                        <span id="marker_size_value" class="badge align-middle text-md bg-primary">1.0</span>
+                        <span id="marker_size_value" class="badge align-middle text-md bg-primary"></span>
                     </a>
                 </li>
             </ul>
@@ -239,8 +234,8 @@
 </body>
 
 <script>
-    var diracChart = new DiracChart();
-    diracChart.StartApp();
+    var DiracChart = new App();
+    DiracChart.StartApp();
 </script>
 
 </html>

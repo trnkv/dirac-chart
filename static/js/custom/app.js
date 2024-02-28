@@ -1,4 +1,4 @@
-var DiracChart = function () {
+var App = function () {
     var app = this;
 
     this.StartApp = function () {
@@ -6,11 +6,10 @@ var DiracChart = function () {
     };
 
     this.Configuration = {
-        data_source_url: "https://t1services.jinr.ru/rest/SSB/lastStatus?site_name=T1_RU_JINR",
         startTime: moment(new Date(2020, 0, 1)),
         datetime_format: 'YYYY-MM-DD HH:mm:ss',
-        markerSize: 1.0,
-        legendSymbolSize: 10,
+        // markerSize: 1.0,
+        // legendSymbolSize: 10,
         dataTableConfig: {
             columns: [
                 { 'data': 'data', 'title': $("#select_colorBy").val() },
@@ -43,7 +42,6 @@ var DiracChart = function () {
             var error_time = new Date(time);
             return moment.duration(now - error_time).humanize();
         },
-
     };
 
     this.Model = {
@@ -52,26 +50,15 @@ var DiracChart = function () {
         filters: null,
         startTime: null,
         endTime: null,
-        colorBy: null,
-        markerSize: null,
         done_handler: null,
         recent_actions: null,
         datatable: null,
-        detailChart: null,
-        masterChart: null,
-        zoomDimensions: null,
+        visualization: null,
 
         initiateModel: function () {
             this.startTime = app.Configuration.startTime.format(app.Configuration.datetime_format);
             this.endTime = moment().format(app.Configuration.datetime_format);
-            this.markerSize = app.Configuration.markerSize;
             this.recent_actions = [];
-            this.zoomDimensions = {
-                'minX': null,
-                'maxX': null,
-                'minY': null,
-                'maxY': null
-            }
         },
 
         reset: function () {
@@ -80,14 +67,10 @@ var DiracChart = function () {
             this.filters = null;
             this.startTime = null;
             this.endTime = null;
-            this.colorBy = null;
-            this.markerSize = null;
             this.done_handler = null;
             this.recent_actions = null;
             this.datatable = null;
-            this.detailChart = null;
-            this.masterChart = null;
-            this.zoomDimensions = null;
+            this.visualization = null;
         },
 
         getFilters: function () {
@@ -252,7 +235,7 @@ var DiracChart = function () {
             app.View.end_time = start_end[1].format(app.Configuration.datetime_format);
 
             var datatable = new DataTable('#datatable', app.Configuration.dataTableConfig);
-            console.log(datatable);
+            // console.log(datatable);
             app.Controller.dataTable_Changed(datatable);
             $('#datatable_wrapper').hide();
 
@@ -262,9 +245,10 @@ var DiracChart = function () {
                 app.Controller.recordRecentAction($(this));
             });
 
-            $("#select_marker_size").val(app.Model.markerSize);
-
             $("#li_recent_actions").find(".badge").css("display", "none");
+            $('#btn_select_all_sites').prop("checked","checked");
+            $('#btn_select_all_owners').prop("checked","checked");
+            $('#btn_select_all_statuses').prop("checked","checked");
 
             $('#btn_load_all').click(function () {
                 app.Controller.loadAllData();
@@ -309,21 +293,6 @@ var DiracChart = function () {
                 app.View.check_none("status");
                 app.Controller.recordRecentAction($(this));
             });
-
-            $("#select_colorBy").on('change', function () {
-                app.Controller.recordRecentAction($(this));
-                app.Controller.colorBy_Changed($(this).val());
-
-            });
-
-            // change marker size
-            $("#select_marker_size").on('input', function () {
-                app.View.displayMarkerSize((Number($(this).val())).toFixed(1));
-            });
-            $("#select_marker_size").on('change', function () {
-                app.Controller.recordRecentAction($(this));
-                app.Controller.markerSize_Changed(Number($(this).val()));
-            });
         },
 
         drawFilter: function (selector, value, text) {
@@ -355,40 +324,32 @@ var DiracChart = function () {
             });
         },
 
-        drawData: function (data, markerSize, colorBy) {
+        drawData: function () {
+            const data = app.Model.data_filtered;
             if (data.length > 0) {
-                var colorBy = (colorBy === undefined || colorBy === null) ? $("#select_colorBy").val() : colorBy;
-                DrawHighChart(app, data, markerSize, colorBy);
+                app.Model.visualization.View.drawChart();
                 this.resetDataTable();
-                this.drawDataTable(data, colorBy);
+                this.drawDataTable(app.Model.visualization.Model.zoomedDataForDetailChart);
             } else {
                 $('#highcharts-container').html('<h4 class="text-primary">There is no data on this request</h4>\
                 <p>Change the request parameters and try again</p>');
             }
         },
 
-        drawDataTable: function (data, colorBy) {
-            var dataForDataTable = [];
-            if (colorBy) {
-                var categories = Array.from(new Set(data.map(obj => obj[colorBy])));
-                for (let i = 0; i < categories.length; i++) {
-                    var category = categories[i],
-                        pointsCount = new Set(data.filter(obj => obj[colorBy] == category)).size;
-                    dataForDataTable.push({ 'data': category, 'pointsCount': pointsCount });
-                }
-            }
-            else {
-                var categories = Array.from(new Set(data.map(obj => obj.name)));
-                for (let i = 0; i < categories.length; i++) {
-                    var category = categories[i],
-                        pointsCount = data.find(obj => {
-                            return obj.name === category
-                        }).data.length;
-                    dataForDataTable.push({ 'data': category, 'pointsCount': pointsCount });
-                };
-            }
+        drawDataTable: function (data) {
+            console.log('data for DataTable: ', data);
+            var dataForDataTable = [],
+                key = 'name';
+            var categories = Array.from(new Set(data.map(obj => obj[key])));
+            for (let i = 0; i < categories.length; i++) {
+                var category = categories[i],
+                    pointsCount = data.find(obj => {
+                        return obj.name === category
+                    }).data.length;
+                dataForDataTable.push({ 'data': category, 'pointsCount': pointsCount });
+            };
             app.Model.datatable.rows.add(dataForDataTable); // Add new data
-            $(app.Model.datatable.column(0).header()).text(colorBy);
+            $(app.Model.datatable.column(0).header()).text(app.Model.visualization.Model.colorBy);
             app.Model.datatable.columns.adjust().draw(); // Redraw the DataTable
             $('#datatable_wrapper').show();
         },
@@ -431,49 +392,6 @@ var DiracChart = function () {
             $('#datatable_wrapper').hide();
         },
 
-        redrawByColorFilter: function () {
-            this.drawData(app.Model.data_filtered, app.Model.markerSize, app.Model.colorBy);
-        },
-
-        displayMarkerSize: function (markerSize_value) {
-            $("#marker_size_value").html(markerSize_value);
-        },
-
-        redrawDetailChart: function (optObj) {
-            var detailChart = app.Model.detailChart;
-            detailChart.showLoading();
-
-            detailChart.series.map(series => series.update(optObj, false));
-
-            detailChart.redraw();
-            app.View.setLegendSymbolSize(app.Configuration.legendSymbolSize);
-            detailChart.hideLoading();
-        },
-
-        setChartTitle: function (periodStart, periodEnd, seriesData) {
-            var detailChart = app.Model.detailChart;
-            detailChart.setTitle(
-                { text: periodStart + ' - ' + periodEnd },
-                { text: 'Count of points: <b>' + seriesData.reduce(function (sum, series) { return sum + series.data.length; }, 0) + '</b>' }, false);
-        },
-
-        setLegendSymbolSize: function (symbolSize) {
-            $(app.Model.detailChart.series).each(function () {
-                this.legendItem.symbol.attr('width', symbolSize);
-                this.legendItem.symbol.attr('height', symbolSize);
-            });
-        },
-
-        setXZoomDimensions: function (minX, maxX) {
-            app.Model.zoomDimensions['minX'] = minX;
-            app.Model.zoomDimensions['maxX'] = maxX;
-        },
-
-        setYZoomDimensions: function (minY, maxY) {
-            app.Model.zoomDimensions['minY'] = minY;
-            app.Model.zoomDimensions['maxY'] = maxY;
-        },
-
         drawRecentActions: function () {
             var last_action = app.Model.recent_actions[app.Model.recent_actions.length - 1];
             $("#li_recent_actions").find(".dropdown-menu").append(`\
@@ -493,6 +411,7 @@ var DiracChart = function () {
             app.View.initiateView();
             app.Model.getFilters();
             app.View.drawFilters(app.Model.filters);
+            this.createVisualization();
         },
 
         loadAllData: function () {
@@ -510,16 +429,9 @@ var DiracChart = function () {
         },
 
         dataLoaded: function () {
-            app.View.drawData(app.Model.data_filtered, app.Model.markerSize);
+            app.Model.visualization.Model.setData(app.Model.data_filtered);
+            app.View.drawData();
             app.View.hidePreloader();
-        },
-
-        setMasterChart: function (masterChart) {
-            app.Model.masterChart = masterChart;
-        },
-
-        setDetailChart: function (detailChart) {
-            app.Model.detailChart = detailChart;
         },
 
         reset: function () {
@@ -532,22 +444,13 @@ var DiracChart = function () {
             if (app.Model.base_data) {
                 let checkedFilters = app.View.getCheckedFilters();
                 app.Model.applyFilters(checkedFilters);
-                app.View.drawData(app.Model.data_filtered, app.Model.markerSize);
+                app.View.drawData();
             }
         },
 
-        colorBy_Changed: function (colorBy_value) {
-            app.Model.colorBy = colorBy_value;
-            app.View.redrawByColorFilter();
-        },
-
-        markerSize_Changed: function (markerSize_value) {
-            app.Model.markerSize = markerSize_value;
-            app.View.redrawDetailChart({
-                marker: {
-                    radius: app.Model.markerSize
-                }
-            });
+        createVisualization: function () {
+            app.Model.visualization = new DiracChart_Visualization(app);
+            app.Model.visualization.StartVis();
         },
 
         dataTable_Changed: function (datatable) {
@@ -580,7 +483,7 @@ var DiracChart = function () {
                     break;
                 case "select_colorBy":
                     action_type += "Color";
-                    action_value = "By " + triggered_element.find("option:selected").text();;
+                    action_value = "By " + triggered_element.find("option:selected").text();
                     break;
                 case "select_marker_size":
                     action_type += "Marker size";
