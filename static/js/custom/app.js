@@ -322,7 +322,7 @@ var App = function () {
             }
 
             $("input[type=checkbox]").change(function () {
-                //app.Controller.filtersChanged(); // DIRTY LITTLE TRICKS. Problem with filtering and saving zoomed data. TODO 
+                app.Controller.filtersChanged();
                 app.Controller.recordRecentAction($(this));
             });
         },
@@ -419,11 +419,12 @@ var App = function () {
 
         loadAllData: function () {
             app.View.showPreloader();
+            app.View.drawFilters(app.Model.filters);
             app.Model.getAllData(this.dataLoaded);
         },
 
         loadDataByFilters: function () {
-            //app.View.leaveOnlyCheckedFilters();      // DIRTY lifehack. TODO later. 
+            app.View.leaveOnlyCheckedFilters();
             let checkedFilters = app.View.getCheckedFilters();
             start_time = app.View.start_time;
             end_time = app.View.end_time;
@@ -447,6 +448,7 @@ var App = function () {
             if (app.Model.base_data) {
                 let checkedFilters = app.View.getCheckedFilters();
                 app.Model.applyFilters(checkedFilters);
+                app.Model.visualization.Model.setData(app.Model.data_filtered);
                 app.View.drawData();
             }
         },
