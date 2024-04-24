@@ -378,8 +378,12 @@ var App = function () {
             $(`input[type=checkbox].${category}-checkbox`).prop('checked', false);
         },
 
-        reset: function () {
+        resetFilters: function() {
             $("input[type=checkbox]").parent().remove();
+        },
+
+        reset: function () {
+            this.resetFilters();
             $('#highcharts-container').html('');
             $('#li_recent_actions').find(".dropdown-menu").html('\
                 <span class="dropdown-item dropdown-header">Recent actions <i class="fa-solid fa-arrow-down-long"></i></span>\
@@ -419,6 +423,7 @@ var App = function () {
 
         loadAllData: function () {
             app.View.showPreloader();
+            app.View.resetFilters();
             app.View.drawFilters(app.Model.filters);
             app.Model.getAllData(this.dataLoaded);
         },
