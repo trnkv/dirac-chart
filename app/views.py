@@ -2,6 +2,7 @@ from datetime import datetime
 import pandas as pd
 from pprint import pprint as pp
 import time
+from random import randint
 
 from django.conf import settings
 from django.shortcuts import render
@@ -10,7 +11,7 @@ from django.http import JsonResponse, HttpResponse
 
 def index(request):
     #return render(request, 'index.html', {})
-    return render(request, 'indexapp.html', {})
+    return render(request, 'indexapp.html', {'randint': str(randint(1, 99999))})
 
 
 def get_filters(request):

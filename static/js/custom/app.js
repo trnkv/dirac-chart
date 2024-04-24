@@ -319,7 +319,7 @@ var App = function () {
             }
 
             $("input[type=checkbox]").change(function () {
-                app.Controller.filtersChanged();
+                //app.Controller.filtersChanged(); // DIRTY LITTLE TRICKS. Problem with filtering and saving zoomed data. TODO 
                 app.Controller.recordRecentAction($(this));
             });
         },
@@ -420,7 +420,7 @@ var App = function () {
         },
 
         loadDataByFilters: function () {
-            app.View.leaveOnlyCheckedFilters();
+            //app.View.leaveOnlyCheckedFilters();      // DIRTY lifehack. TODO later. 
             let checkedFilters = app.View.getCheckedFilters();
             start_time = app.View.start_time;
             end_time = app.View.end_time;
