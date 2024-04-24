@@ -251,6 +251,9 @@ var App = function () {
             $('#btn_select_all_statuses').prop("checked","checked");
 
             $('#btn_load_all').click(function () {
+                $('#btn_select_all_sites').trigger('click');
+                $('#btn_select_all_owners').trigger('click');
+                $('#btn_select_all_statuses').trigger('click');
                 app.Controller.loadAllData();
                 app.Controller.recordRecentAction($(this));
             });
