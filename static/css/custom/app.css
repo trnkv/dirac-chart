@@ -43,6 +43,10 @@
     background-color: #fff;
 }
 
+.custom-control-label {
+    max-width: 100px;
+}
+
 #master-container {
     height: 20vh;
 }
