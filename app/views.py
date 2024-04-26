@@ -20,9 +20,9 @@ def get_filters(request):
     filters = {
         #"hostname": df['hostname'].unique().tolist(),
         #"model": df['cpu_model'].unique().tolist(),
-        "site": df['site'].unique().tolist(),
-        "status": df['status'].unique().tolist(),
-        "owner": df['owner'].unique().tolist(),
+        "site": sorted(df['site'].unique().tolist()),
+        "status": sorted(df['status'].unique().tolist()),
+        "owner": sorted(df['owner'].unique().tolist()),
     }
     print(filters)
     return JsonResponse({'filters': filters})
