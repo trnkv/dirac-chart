@@ -283,37 +283,44 @@ let DiracChart_Visualization = function (app) {
                                 }, []);
                                 const newTotalJobsPerHour = vis.Model.initDataForMasterChart(newZoomedData);
 
-                                const zoomedMinStartTime = newTotalJobsPerHour[0][0],
-                                    zoomedMaxStartTime = newTotalJobsPerHour[newTotalJobsPerHour.length - 1][0];
+                                if (newTotalJobsPerHour.length > 0) {
+                                    const zoomedMinStartTime = newTotalJobsPerHour[0][0],
+                                        zoomedMaxStartTime = newTotalJobsPerHour[newTotalJobsPerHour.length - 1][0];
 
-                                // move the plot bands to reflect the new detail span
-                                masterChart.axes[0].removePlotBand('mask-before');
-                                masterChart.axes[0].addPlotBand({
-                                    id: 'mask-before',
-                                    from: min_start_time,
-                                    to: zoomedMinStartTime,
-                                    color: 'rgba(0, 0, 0, 0.2)'
-                                });
+                                    // move the plot bands to reflect the new detail span
+                                    masterChart.axes[0].removePlotBand('mask-before');
+                                    masterChart.axes[0].addPlotBand({
+                                        id: 'mask-before',
+                                        from: min_start_time,
+                                        to: zoomedMinStartTime,
+                                        color: 'rgba(0, 0, 0, 0.2)'
+                                    });
 
-                                masterChart.axes[0].removePlotBand('mask-after');
-                                masterChart.axes[0].addPlotBand({
-                                    id: 'mask-after',
-                                    from: zoomedMaxStartTime,
-                                    to: max_start_time,
-                                    color: 'rgba(0, 0, 0, 0.2)'
-                                });
+                                    masterChart.axes[0].removePlotBand('mask-after');
+                                    masterChart.axes[0].addPlotBand({
+                                        id: 'mask-after',
+                                        from: zoomedMaxStartTime,
+                                        to: max_start_time,
+                                        color: 'rgba(0, 0, 0, 0.2)'
+                                    });
 
-                                masterChart.series[0].setData(newTotalJobsPerHour);
-                                vis.Controller.changeZoomedDataForMasterChart(newTotalJobsPerHour);
+                                    masterChart.series[0].setData(newTotalJobsPerHour);
+                                    vis.Controller.changeZoomedDataForMasterChart(newTotalJobsPerHour);
 
-                                vis.View.setChartTitle(vis.Utils.msFormat(zoomedMinStartTime), vis.Utils.msFormat(zoomedMaxStartTime), newZoomedData.length);
-                                this.redraw();
-                                masterChart.redraw();
-                                vis.View.setLegendSymbolSize(vis.Configuration.legendSymbolSize);
-                                this.hideLoading();
+                                    vis.View.setChartTitle(vis.Utils.msFormat(zoomedMinStartTime), vis.Utils.msFormat(zoomedMaxStartTime), newZoomedData.length);
+                                    this.redraw();
+                                    masterChart.redraw();
+                                    vis.View.setLegendSymbolSize(vis.Configuration.legendSymbolSize);
+                                    this.hideLoading();
 
-                                vis.Model.app.View.resetDataTable();
-                                vis.Model.app.View.drawDataTable(newZoomedSeriesData);
+                                    vis.Model.app.View.resetDataTable();
+                                    vis.Model.app.View.drawDataTable(newZoomedSeriesData);
+                                }
+                                else {
+                                    vis.View.setChartTitle(null, null, 0);
+                                    vis.Model.app.View.resetDataTable();
+                                    this.hideLoading();
+                                }
                             },
                             redraw: function () {
                                 const chart = this,
@@ -347,34 +354,13 @@ let DiracChart_Visualization = function (app) {
                             fontSize: '1em'
                         }
                     },
-                    legend: {
-                        enabled: true,
-                        backgroundColor: "rgba(255, 255, 255, 0.5)",
-                        layout: 'vertical',
-                        align: 'left',
-                        verticalAlign: 'top',
-                        x: 50,
-                        y: 60,
-                        borderWidth: 1,
-                        borderRadius: 5,
-                        itemMarginTop: 10,
-                        itemMarginBottom: 10,
-                        maxHeight: 200,
-                        floating: true,
-                        draggable: true,
-                        title: {
-                            text: ':: Drag me'
-                        },
-                        // labelFormatter: function () {
-                        //     return '<span style="color:' + this.color + ';">' + this.name + '</span>';
-                        // },
-                    },
                     xAxis: {
                         title: {
                             text: "DB12 value",
                         },
                         labels: {
                             format: "{value}",
+                            zIndex: 6
                         },
                     },
                     yAxis: {
@@ -385,7 +371,8 @@ let DiracChart_Visualization = function (app) {
                             formatter: function () {
                                 return this.value / 1000 + "K"
                             },
-                            x: 5
+                            x: 5,
+                            zIndex: 6
                         },
                         // maxZoom: 0.1
                     },
@@ -436,6 +423,26 @@ let DiracChart_Visualization = function (app) {
                         },
                     },
                     series: vis.Model.zoomedDataForDetailChart,
+                    legend: {
+                        backgroundColor: "rgba(255, 255, 255, 0.5)",
+                        layout: 'vertical',
+                        align: 'left',
+                        verticalAlign: 'top',
+                        x: 50,
+                        y: 60,
+                        borderWidth: 1,
+                        borderRadius: 5,
+                        maxHeight: 200,
+                        floating: true,
+                        draggable: true,
+                        title: {
+                            text: ':: Drag me'
+                        },
+                        zIndex: 20
+                        // labelFormatter: function () {
+                        //     return '<span style="color:' + this.color + ';">' + this.name + '</span>';
+                        // },
+                    },
                     exporting: {
                         enabled: true
                     },

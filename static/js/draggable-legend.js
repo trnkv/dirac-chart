@@ -78,17 +78,19 @@
             isDragging = false;
         }
 
-        if (options.draggable && title) {
+        if (options.draggable) {
 
             title.css({ cursor: 'move' });
 
             // Mouse events
             addEvent(title.element, 'mousedown', pointerDown);
+            addEvent(legend.box.element, 'mousedown', pointerDown);
             addEvent(chart.container, 'mousemove', pointerMove);
             addEvent(document, 'mouseup', pointerUp);
 
             // Touch events
             addEvent(title.element, 'touchstart', pointerDown);
+            addEvent(legend.box.element, 'touchstart', pointerDown);
             addEvent(chart.container, 'touchmove', pointerMove);
             addEvent(document, 'touchend', pointerUp);
 
