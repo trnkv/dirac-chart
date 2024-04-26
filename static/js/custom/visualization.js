@@ -148,29 +148,32 @@ let DiracChart_Visualization = function (app) {
                 result.sort(function (a, b) { return a[0] - b[0] });
                 // console.log(result);
 
-                let current_hour_start = Math.floor(result[0][0] / 60 / 60 / 1000) * 60 * 60 * 1000,
-                    current_hour_end = current_hour_start + 60 * 60 * 1000,
-                    current_hour_max_value = 0,
-                    result_data = {};
+                if (result.length > 0) {
+                    let current_hour_start = Math.floor(result[0][0] / 60 / 60 / 1000) * 60 * 60 * 1000,
+                        current_hour_end = current_hour_start + 60 * 60 * 1000,
+                        current_hour_max_value = 0,
+                        result_data = {};
 
-                for (let i = 0; i < result.length; i++) {
-                    if (result[i][0] < current_hour_end) {
-                        current_hour_max_value = Math.max(result[i][1], current_hour_max_value);
-                        // !!! в result_data никогда ничего не кладётся 
+                    for (let i = 0; i < result.length; i++) {
+                        if (result[i][0] < current_hour_end) {
+                            current_hour_max_value = Math.max(result[i][1], current_hour_max_value);
+                            // !!! в result_data никогда ничего не кладётся 
+                        }
+                        else {
+                            // result_data.push([current_hour_start, current_hour_max_value]);
+                            current_hour_start = Math.floor(result[i][0] / 60 / 60 / 1000) * 60 * 60 * 1000;
+                            current_hour_end = current_hour_start + 60 * 60 * 1000;
+                            current_hour_max_value = result[i][1];
+                        }
+                        result_data[current_hour_start] = current_hour_max_value;
                     }
-                    else {
-                        // result_data.push([current_hour_start, current_hour_max_value]);
-                        current_hour_start = Math.floor(result[i][0] / 60 / 60 / 1000) * 60 * 60 * 1000;
-                        current_hour_end = current_hour_start + 60 * 60 * 1000;
-                        current_hour_max_value = result[i][1];
-                    }
-                    result_data[current_hour_start] = current_hour_max_value;
+                    // console.log(result_data);
+                    // result_data = result_data.map(pair => [pair[0], pair[1]]);
+                    result_data = Object.keys(result_data).map((key) => [Number(key), result_data[key]]);
+                    // console.log(result_data);
+                    return result_data;
                 }
-                // console.log(result_data);
-                // result_data = result_data.map(pair => [pair[0], pair[1]]);
-                result_data = Object.keys(result_data).map((key) => [Number(key), result_data[key]]);
-                // console.log(result_data);
-                return result_data;
+                return result;
             }
         },
 
@@ -235,7 +238,7 @@ let DiracChart_Visualization = function (app) {
                             }
                         },
                         events: {
-                            render: function() {
+                            render: function () {
                                 this.showResetZoom();
                             },
                             selection: function (event) {
@@ -308,7 +311,7 @@ let DiracChart_Visualization = function (app) {
                                 masterChart.redraw();
                                 vis.View.setLegendSymbolSize(vis.Configuration.legendSymbolSize);
                                 this.hideLoading();
-                                
+
                                 vis.Model.app.View.resetDataTable();
                                 vis.Model.app.View.drawDataTable(newZoomedSeriesData);
                             },
@@ -463,7 +466,7 @@ let DiracChart_Visualization = function (app) {
                         marginRight: 20,
                         zoomType: 'x',
                         events: {
-                            render: function() {
+                            render: function () {
                                 this.showResetZoom();
                             },
                             selection: function (event) { // listen to the selection event on the master chart to update the extremes of the detail chart
@@ -721,7 +724,7 @@ let DiracChart_Visualization = function (app) {
                     currentJobIDs = currentDetailData.map(obj => obj.job_id);
 
                 vis.Model.zoomedDataForDetailChart = JSON.parse(JSON.stringify(vis.Model.dataForDetailChart.map(series => {
-                    return {...series, data: series.data.filter((obj) => currentJobIDs.includes(obj.job_id))}
+                    return { ...series, data: series.data.filter((obj) => currentJobIDs.includes(obj.job_id)) }
                 })));
             }
         }
