@@ -110,6 +110,7 @@ let DiracChart_Visualization = function (app) {
             },
 
             initDataForMasterChart: function (inputData) {
+                //console.log(inputData);
                 let result = {},
                     allData = inputData.slice(),
                     jobs = [];
@@ -120,7 +121,7 @@ let DiracChart_Visualization = function (app) {
                 });
 
                 jobs.sort(function (a, b) { return a[0] - b[0] });
-                // console.log(jobs);
+                //console.log(jobs);
 
                 let running_at_time = {};
                 let stop_times = [];
@@ -141,12 +142,19 @@ let DiracChart_Visualization = function (app) {
                     stop_times.push(stop);
                     stop_times.sort(function (a, b) { return a - b });
                 }
-                // console.log(running_at_time);
+                for (let i=0; i < stop_times.length; i++) {
+                    const stop = stop_times[i];
+                    current -= 1;
+                    running_at_time[stop] = current;
+                }
+                //console.log(Object.keys(running_at_time).length)
+                //console.log(running_at_time);
 
                 result = Object.entries(running_at_time);
                 result = result.map(pair => [parseInt(pair[0]), pair[1]]);
                 result.sort(function (a, b) { return a[0] - b[0] });
-                // console.log(result);
+                //console.log(result);
+                //console.log(result.length);
 
                 if (result.length > 0) {
                     let current_hour_start = Math.floor(result[0][0] / 60 / 60 / 1000) * 60 * 60 * 1000,
@@ -170,7 +178,7 @@ let DiracChart_Visualization = function (app) {
                     // console.log(result_data);
                     // result_data = result_data.map(pair => [pair[0], pair[1]]);
                     result_data = Object.keys(result_data).map((key) => [Number(key), result_data[key]]);
-                    // console.log(result_data);
+                    //console.log(result_data);
                     return result_data;
                 }
                 return result;

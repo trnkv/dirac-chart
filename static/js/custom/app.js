@@ -104,6 +104,8 @@ var App = function () {
 
         getDataByFilters: function (done_handler, checkedFilters, startTime, endTime) {
             this.colorBy = $("#select_colorBy").val();
+            console.log(startTime);
+            console.log(endTime);
             $.ajax({
                 xhr: function () {
                     var xhr = new window.XMLHttpRequest();
