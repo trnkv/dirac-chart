@@ -111,6 +111,7 @@ let DiracChart_Visualization = function (app) {
 
             initDataForMasterChart: function (inputData) {
                 //console.log(inputData);
+                const start = Date.now();
                 let result = {},
                     allData = inputData.slice(),
                     jobs = [];
@@ -179,6 +180,37 @@ let DiracChart_Visualization = function (app) {
                     // result_data = result_data.map(pair => [pair[0], pair[1]]);
                     result_data = Object.keys(result_data).map((key) => [Number(key), result_data[key]]);
                     //console.log(result_data);
+                    //IGOR
+                    //This code is supposed to add 0 values. Issue appears when we suddensly stop jobs and suddenly start jobs. In that case in master chart there will be a line not equal to 0 when it should be 0.
+                    var min_time=result_data[0][0];
+                    var max_time=result_data[result_data.length-1][0];
+                    result_data.unshift([min_time - 3600000, 0]);
+                    result_data.push([max_time + 3600000, 0]);
+
+                    var index = 1;
+                    var lastTime = result_data[0][0];
+                    while (index < result_data.length) {
+                        if (result_data[index][0] - 3600000 == lastTime){
+                            lastTime = result_data[index][0]
+                            index += 1;
+                            continue;
+                        }
+                        if (result_data[index][0] - 3600000 > lastTime){
+                            result_data.splice(index, 0, [lastTime + 3600000, 0]);
+                            lastTime = lastTime + 3600000;
+                            index += 1;
+                            if (result_data[index][0] - 3600000 != lastTime){
+                                result_data.splice(index, 0, [result_data[index][0] - 3600000, 0]);
+                                lastTime = result_data[index][0] - 3600000;
+                                index += 1;
+                            }
+                            continue;
+                        }
+                    }
+                    const end = Date.now();
+                    console.log(`Time to initDataForMasterChart: ${end - start} ms`);
+
+                    //IGOR
                     return result_data;
                 }
                 return result;
