@@ -504,6 +504,7 @@ let DiracChart_Visualization = function (app) {
             },
 
             createChart: function () {
+                $('#highcharts-container').html('<div id="detail-container"></div><div id="master-container"></div>');
                 var masterChart = Highcharts.chart('master-container', {
                     chart: {
                         reflow: false,
