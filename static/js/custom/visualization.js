@@ -52,6 +52,8 @@ let DiracChart_Visualization = function (app) {
             dataForMasterChart: undefined,
             zoomedDataForDetailChart: undefined,
             zoomedDataForMasterChart: undefined,
+            dataForDurationChart: undefined,
+            //dataForDurationCountChart: undefined,
             colorBy: null,
             markerSize: 0.1,
 
@@ -67,6 +69,8 @@ let DiracChart_Visualization = function (app) {
                 this.dataForMasterChart = this.initDataForMasterChart(this.data);
                 this.zoomedDataForDetailChart = JSON.parse(JSON.stringify(this.dataForDetailChart));
                 this.zoomedDataForMasterChart = JSON.parse(JSON.stringify(this.dataForMasterChart));
+                this.dataForDurationChart = this.initDataForDurationChart(this.data);
+                //this.dataForDurationCountChart = this.initDataForDurationCountChart(this.data);
             },
 
             reset: function () {
@@ -80,6 +84,7 @@ let DiracChart_Visualization = function (app) {
                 this.dataForDetailChart = undefined;
                 this.zoomedDataForDetailChart = undefined;
                 this.zoomedDataForMasterChart = undefined;
+                this.dataForDurationChart = undefined;
             },
 
             initDataForDetailChart: function (inputData) {
@@ -143,7 +148,7 @@ let DiracChart_Visualization = function (app) {
                     stop_times.push(stop);
                     stop_times.sort(function (a, b) { return a - b });
                 }
-                for (let i=0; i < stop_times.length; i++) {
+                for (let i = 0; i < stop_times.length; i++) {
                     const stop = stop_times[i];
                     current -= 1;
                     running_at_time[stop] = current;
@@ -182,24 +187,24 @@ let DiracChart_Visualization = function (app) {
                     //console.log(result_data);
                     //IGOR
                     //This code is supposed to add 0 values. Issue appears when we suddensly stop jobs and suddenly start jobs. In that case in master chart there will be a line not equal to 0 when it should be 0.
-                    var min_time=result_data[0][0];
-                    var max_time=result_data[result_data.length-1][0];
+                    var min_time = result_data[0][0];
+                    var max_time = result_data[result_data.length - 1][0];
                     result_data.unshift([min_time - 3600000, 0]);
                     result_data.push([max_time + 3600000, 0]);
 
                     var index = 1;
                     var lastTime = result_data[0][0];
                     while (index < result_data.length) {
-                        if (result_data[index][0] - 3600000 == lastTime){
+                        if (result_data[index][0] - 3600000 == lastTime) {
                             lastTime = result_data[index][0]
                             index += 1;
                             continue;
                         }
-                        if (result_data[index][0] - 3600000 > lastTime){
+                        if (result_data[index][0] - 3600000 > lastTime) {
                             result_data.splice(index, 0, [lastTime + 3600000, 0]);
                             lastTime = lastTime + 3600000;
                             index += 1;
-                            if (result_data[index][0] - 3600000 != lastTime){
+                            if (result_data[index][0] - 3600000 != lastTime) {
                                 result_data.splice(index, 0, [result_data[index][0] - 3600000, 0]);
                                 lastTime = result_data[index][0] - 3600000;
                                 index += 1;
@@ -214,13 +219,83 @@ let DiracChart_Visualization = function (app) {
                     return result_data;
                 }
                 return result;
+            },
+
+            initDataForDurationChart: function (inputData) {
+                let groupMap = {}, groupBy = vis.Model.colorBy, result = {};
+
+                // Группируем объекты по colorBy
+                inputData.forEach(obj => {
+                    const groupName = obj[groupBy];
+                    if (groupName !== undefined) {
+                        if (!groupMap[groupName]) {
+                            groupMap[groupName] = [];
+                        }
+                        groupMap[groupName].push(obj);
+                    }
+                });
+
+                // console.log(groupMap);
+
+                for (const groupName in groupMap) {
+                    if (!result[groupName]) {
+                        result[groupName] = {};
+                    };
+                    groupMap[groupName].forEach(obj => {
+                        const duration = obj['wall_time' in obj ? 'wall_time' : 'y'];
+                        if (duration !== undefined) {
+                            result[groupName][duration] = (result[groupName][duration] || 0) + 1;
+                        }
+                    });
+                }
+                // console.log(result);
+                return result;
+            },
+
+            // не используем
+            initDataForDurationCountChart: function (inputData) {
+                const grouped = inputData.reduce((acc, item) => {
+                    const key = item[vis.Model.colorBy];
+                    const wallTime = item.wall_time;
+            
+                    if (!acc[wallTime]) {
+                        acc[wallTime] = {};
+                    }
+            
+                    if (!acc[wallTime][key]) {
+                        acc[wallTime][key] = 0;
+                    }
+            
+                    acc[wallTime][key] += 1;
+            
+                    return acc;
+                }, {});
+            
+                const result = [];
+            
+                // Получаем все уникальные значения wall_time
+                const wallTimes = Object.keys(grouped);
+            
+                // Получаем все уникальные значения vis.Model.colorBy (например, 'site')
+                const uniqueKeys = [...new Set(inputData.map(item => item[vis.Model.colorBy]))];
+            
+                // Формируем результирующий массив
+                uniqueKeys.forEach(name => {
+                    const dataPoints = wallTimes.map(wallTime => {
+                        return grouped[wallTime][name] || 0; // Если нет записей, то 0
+                    });
+            
+                    result.push({ name, data: dataPoints });
+                });
+            
+                return result;
             }
         },
 
         this.View = {
             initiateView: function () {
                 vis.Utils.useUTC(vis.Configuration.useUTC);
-                $('#highcharts-container').html('<div id="detail-container"></div><div id="master-container"></div>');
+                $('#masterdetail-container').html('<div id="detail-container"></div><div id="master-container"></div>');
                 $('#select_color_filter, #select_marker_size').prop("disabled", false);
                 $('#select_marker_size').val(vis.Configuration.markerSize);
                 vis.View.displayMarkerSize(vis.Configuration.markerSize);
@@ -241,7 +316,9 @@ let DiracChart_Visualization = function (app) {
             },
 
             drawChart: function () {
-                this.createChart();
+                this.createMasterDetailChart();
+                this.createDurationChart();
+                //this.createDurationCountChart();
                 vis.Model.app.View.resetDataTable();
                 vis.Model.app.View.drawDataTable(vis.Model.zoomedDataForDetailChart);
                 $('#master-container').css({
@@ -503,9 +580,9 @@ let DiracChart_Visualization = function (app) {
                 vis.View.setLegendSymbolSize(vis.Configuration.legendSymbolSize);
             },
 
-            createChart: function () {
-                $('#highcharts-container').html('<div id="detail-container"></div><div id="master-container"></div>');
-                var masterChart = Highcharts.chart('master-container', {
+            createMasterDetailChart: function () {
+                $('#masterdetail-container').html('<div id="detail-container"></div><div id="master-container"></div>');
+                let masterChart = Highcharts.chart('master-container', {
                     chart: {
                         reflow: false,
                         borderWidth: 0,
@@ -678,12 +755,146 @@ let DiracChart_Visualization = function (app) {
                     masterChart => {
                         vis.View.createDetailChart(masterChart);
                     }); // return chart instance
+                //console.log(masterChart);
+
                 vis.Controller.setMasterChart(masterChart);
+            },
+
+            createDurationChart: function () {
+                let data = Object.keys(vis.Model.dataForDurationChart).map(groupName => ({
+                    'name': groupName,
+                    'data': Object.keys(vis.Model.dataForDurationChart[groupName]).map(walltime => Number(walltime))
+                }));
+                // console.log(data);
+                let traces = [];
+                data.forEach(obj => {
+                    traces.push({
+                        'x': obj['data'],
+                        'type': 'histogram',
+                        'name': obj['name'],
+                        //'text': obj['data'].map(sec => vis.Utils.secondsToDhms(sec)),
+                        'hoverinfo': 'all',
+                        /*'hovertemplate': (obj['data'].map(sec => vis.Utils.secondsToDhms(sec))).map((formattedTime, index) => {
+                            return formattedTime;
+                        }),*/
+                        'texttemplate': " "
+                    })
+                });
+                var layout = {
+                    barmode: "stack",
+                    title: "Jobs' duration",
+                    xaxis: {
+                        title: {
+                          text: 'Duration (WallTime in seconds)',
+                        }
+                    },
+                    yaxis: {
+                        title: {
+                          text: 'Count of jobs',
+                        }
+                    }
+                };
+                Plotly.newPlot('duration-container', traces, layout);
+
+                /*let durationChart = Highcharts.chart('duration-container', {
+                    chart: {
+                        type: 'spline'
+                    },
+                    title: {
+                        text: "Jobs' duration"
+                    },
+                    xAxis: {
+                        // categories: Object.keys(vis.Model.dataForDurationChart)
+                    },
+                    yAxis: {
+                        title: {
+                            text: 'Duration (WallTime)'
+                        },
+                        labels: {
+                            format: '{value}'
+                        }
+                    },
+                    tooltip: {
+                        // shared: true
+                        formatter: function () {
+                            console.log(this);
+                            // vis.Utils.secondsToDhms(walltime)
+                            return `<b>${this.point.series.name}</b><br>` +
+                                vis.Utils.secondsToDhms(this.y);
+                        }
+                    },
+                    plotOptions: {
+                        spline: {
+                            marker: {
+                                radius: 4,
+                                lineColor: '#666666',
+                                lineWidth: 1
+                            }
+                        }
+                    },
+                    series: Object.keys(vis.Model.dataForDurationChart).map(groupName => ({
+                        'name': groupName,
+                        'data': Object.keys(vis.Model.dataForDurationChart[groupName]).map(walltime => Number(walltime))
+                    }))
+                });*/
+            },
+
+            // не используем
+            createDurationCountChart: function () {
+                let walltimes = Object.keys(vis.Model.dataForDurationChart).map(groupName => Object.keys(vis.Model.dataForDurationChart[groupName])).flat();
+                walltimes = walltimes.map(sec => vis.Utils.secondsToDhms(sec));
+                Highcharts.chart('durationCount-container', {
+                    chart: {
+                        type: 'column'
+                    },
+                    title: {
+                        text: 'Количество задач определенной продолжительности'
+                    },
+                    xAxis: {
+                        categories: walltimes
+                    },
+                    yAxis: {
+                        min: 0,
+                        title: {
+                            text: "Jobs count"
+                        },
+                        stackLabels: {
+                            enabled: true
+                        }
+                    },
+                    legend: {
+                        align: 'left',
+                        x: 70,
+                        verticalAlign: 'top',
+                        y: 70,
+                        floating: true,
+                        backgroundColor:
+                            Highcharts.defaultOptions.legend.backgroundColor || 'white',
+                        borderColor: '#CCC',
+                        borderWidth: 1,
+                        shadow: false
+                    },
+                    tooltip: {
+                        headerFormat: '<b>{series.name}</b><br/>'
+                    },
+                    plotOptions: {
+                        column: {
+                            stacking: 'normal',
+                            dataLabels: {
+                                enabled: true
+                            }
+                        }
+                    },
+                    series: vis.Model.dataForDurationCountChart
+                });
             },
 
             redrawByColorFilter: function () {
                 vis.Controller.reinitDataForDetailChart();
-                this.createChart();
+                vis.Controller.reinitDataForDurationChart();
+                this.createMasterDetailChart();
+                this.createDurationChart();
+                //this.createDurationCountChart();
             },
 
             displayMarkerSize: function (markerSize_value) {
@@ -774,6 +985,11 @@ let DiracChart_Visualization = function (app) {
                 vis.Model.zoomedDataForDetailChart = JSON.parse(JSON.stringify(vis.Model.dataForDetailChart.map(series => {
                     return { ...series, data: series.data.filter((obj) => currentJobIDs.includes(obj.job_id)) }
                 })));
+            },
+
+            reinitDataForDurationChart: function () {
+                vis.Model.dataForDurationChart = vis.Model.initDataForDurationChart(vis.Model.data);
+                //console.log(vis.Model.dataForDurationChart);
             }
         }
 }

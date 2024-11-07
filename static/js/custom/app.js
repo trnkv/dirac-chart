@@ -336,7 +336,7 @@ var App = function () {
                 this.resetDataTable();
                 this.drawDataTable(app.Model.visualization.Model.zoomedDataForDetailChart);
             } else {
-                $('#highcharts-container').html('<h4 class="text-primary">There is no data on this request</h4>\
+                $('#masterdetail-container').html('<h4 class="text-primary">There is no data on this request</h4>\
                 <p>Change the request parameters and try again</p>');
             }
         },
@@ -386,7 +386,7 @@ var App = function () {
 
         reset: function () {
             this.resetFilters();
-            $('#highcharts-container').html('');
+            $('#masterdetail-container').html('');
             $('#li_recent_actions').find(".dropdown-menu").html('\
                 <span class="dropdown-item dropdown-header">Recent actions <i class="fa-solid fa-arrow-down-long"></i></span>\
                 <div class="dropdown-divider"></div>');
