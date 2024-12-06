@@ -4,7 +4,9 @@
 
 <head>
     <title>Dirac Chart</title>
-    <meta charset="utf-8" />
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&amp;display=fallback">
     <!-- JQuery 3.6.3 -->
     <script src="{% static 'js/jquery-3.6.3.js' %}"></script>
     <!-- JQuery UI for AdminLTE-->
@@ -13,8 +15,7 @@
     <script src="{% static 'js/moment.min.js' %}"></script>
     <!-- PapaParse -->
     <script src="{% static 'js/papaparse.js' %}"></script>
-    <!-- Bootstrap 5.3 -->
-    <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet" />
+    <!-- Bootstrap Bundle -->
     <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
     <!-- FontAwesome -->
     <link href="{% static 'js/fontawesome-free-6.3.0-web/css/all.min.css' %}" rel="stylesheet" />
@@ -22,358 +23,235 @@
     <link href="{% static 'js/daterangepicker/daterangepicker.css' %}" rel="stylesheet" />
     <script src="{% static 'js/daterangepicker/daterangepicker.js' %}"></script>
     <!-- HighCharts v11.0.1 -->
-    <script src="{% static 'js/highcharts.js' %}"></script>
+    <script src="{% static 'js/highcharts_v.11.0.1.js' %}"></script>
     <script src="{% static 'js/exporting.js' %}"></script>
     <script src="{% static 'js/boost.js' %}"></script>
+    <!-- Plotly.js -->
+    <script src="{% static 'js/plotly-2.35.2.min.js' %}"></script>
     <!-- Draggable Legend -->
-    <script src="{% static 'js/draggable-legend.js' %}"></script>
+    <script src="/static/js/draggable-legend.js?v=1.3.9"></script>
     <!-- DataTables -->
     <link href="{% static 'css/datatables.min.css' %}" rel="stylesheet" />
     <script src="{% static 'js/datatables.min.js' %}"></script>
     <script src="{% static 'js/pdfmake.min.js' %}"></script>
     <script src="{% static 'js/vfs_fonts.js' %}"></script>
+    <!-- OverlayScrollbars -->
+    <link href="{% static 'css/OverlayScrollbars.min.css' %}" rel="stylesheet" />
     <!-- AdminLTE v3.2.0 -->
+    <link href="{% static 'css/adminlte-3.2.0.min.css' %}" rel="stylesheet" />
     <script src="{% static 'js/adminlte-3.2.0.js' %}"></script>
+    <!-- Custom styles -->
+    <link href="/static/css/custom/app.css?v={{ randint }}" rel="stylesheet" />
     <!-- Custom functions -->
-    <script src="{% static 'js/custom/createDateRangePicker.js' %}"></script>
-    <script src="{% static 'js/custom/secondsToDhms.js' %}"></script>
-    <script src="{% static 'js/custom/drawFilter.js' %}"></script>
-    <script src="{% static 'js/custom/DrawHighChart.js' %}"></script>
-    <script src="{% static 'js/custom/getDataByFilters.js' %}"></script>
-    <script src="{% static 'js/custom/compTotalJobs.js' %}"></script>
+    <script src="/static/js/custom/app.js?v={{ randint }}"></script>
+    <script src="/static/js/custom/visualization.js?v={{ randint }}"></script>
 </head>
 
-<body class="sidebar-mini layout-fixed" style="height: auto;">
+<!--<body class="sidebar-mini layout-fixed bg-white" style="height: auto;">-->
+<body class="sidebar-mini bg-white">
     <div class="wrapper">
-        <div class="row">
-            <div class="col-3">
-                <div id="time-selector" class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Time selector</h5>
-                        <div id="reportrange" class="input-group-text">
-                            <i class="fa fa-calendar"></i><span></span> <i class="fa fa-caret-down"></i>
-                        </div>
+        <nav class="main-header navbar navbar-expand navbar-white navbar-light">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <div class="input-group">
+                        <label class="input-group-text" for="select_marker_size">
+                            <span><i class="fa-solid fa-paintbrush"></i> Color by</span>
+                        </label>
+                        <select id="select_colorBy" class="form-control">
+                            <option selected value="site">SITE</option>
+                            <option value="owner">OWNER</option>
+                            <option value="status">STATUS</option>
+                            <option value="hostname">HOSTNAME</option>
+                            <option value="job_group">JOB GROUP</option>
+                            <option value="cpu_model">CPU MODEL</option>
+                        </select>
                     </div>
-                </div>
-                <div id="site-selector" class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Site selector</h5>
-                        <p class="card-text"></p>
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" value="all" role="switch" id="site_all" checked>
-                            <label class="form-check-label" for="site_all">All</label>
-                        </div>
+                </li>
+                <li class="nav-item">
+                    <div class="input-group">
+                        <label class="input-group-text" for="select_marker_size">
+                            <span><i class="fa-solid fa-circle-dot"></i> Marker size</span>
+                        </label>
+                        <input id="select_marker_size" class="flex-grow-1 mx-1" type="range" min="0.1" step="0.1" max="5">
                     </div>
-                </div>
-                <div id="owner-selector" class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Owner selector</h5>
-                        <p class="card-text"></p>
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" value="all" role="switch" id="owner_all" checked>
-                            <label class="form-check-label" for="owner_all">All</label>
-                        </div>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link">
+                        <span id="marker_size_value" class="badge align-middle text-md bg-primary"></span>
+                    </a>
+                </li>
+            </ul>
+            <ul class="navbar-nav ml-auto">
+                <li id="li_recent_actions" class="nav-item dropdown">
+                    <a class="nav-link" data-bs-toggle="dropdown" href="#">
+                        <i class="fa-solid fa-list-ol"></i>
+                        <span class="badge badge-primary navbar-badge">0</span>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-xl dropdown-menu-right text-sm">
+                        <span class="dropdown-item dropdown-header">Recent actions <i class="fa-solid fa-arrow-down-long"></i></span>
+                        <div class="dropdown-divider"></div>
                     </div>
-                </div>
-                <div id="status-selector" class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Status selector</h5>
-                        <p class="card-text"></p>
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" value="all" role="switch" id="status_all" checked>
-                            <label class="form-check-label" for="status_all">All</label>
-                        </div>
-                    </div>
-                </div>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-widget="fullscreen" href="#" role="button">
+                        <i class="fas fa-expand-arrows-alt"></i>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        <aside class="main-sidebar sidebar-dark-secondary">
+            <a href="/" class="brand-link">
+                <span class="brand-text font-weight-light">Dirac-Chart</span>
+            </a>
+            <div class="brand-link">
+                <button id="btn_load_all" class="btn btn-success btn-sm">Load All</button>
+                <button id="btn_load_filtered" class="btn btn-primary btn-sm">Load filtered</button>
+                <button id="btn_reset" class="btn btn-danger btn-sm">Reset</button>
             </div>
-            <div class="col">
+            <div class="sidebar overflow-auto">
+                <nav class="mt-2">
+                    <ul class="nav nav-pills nav-sidebar nav-compact flex-column" data-widget="treeview" role="menu" data-accordion="false">
+                        <li class="nav-item menu-open">
+                            <a href="#" class="nav-link active">
+                                <i class="nav-icon fa-regular fa-calendar-days"></i>
+                                <p>
+                                    Time
+                                    <i class="fas fa-angle-left right"></i>
+                                </p>
+                            </a>
+                            <ul class="nav nav-treeview">
+                                <li class="nav-item">
+                                    <div id="reportrange" class="input-group-text">
+                                        <span></span> <i class="fa fa-caret-down"></i>
+                                    </div>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item menu-open">
+                            <a href="#" class="nav-link active">
+                                <i class="nav-icon fa-solid fa-server"></i>
+                                <p>
+                                    Site
+                                    <i class="right fas fa-angle-left"></i>
+                                </p>
+                            </a>
+                            <ul id="site-selector" class="nav nav-treeview">
+                                <div class="form-inline margin">
+                                    <span class="badge">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="radio1" id="btn_select_all_sites" checked>
+                                                <label class="form-check-label text-primary text-md">All</label>
+                                            </div>
+                                        </span>
+                                    <span class="badge ml-auto">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="radio1" id="btn_select_none_sites">
+                                            <label class="form-check-label text-light text-md">None</label>
+                                        </div>
+                                    </span>
+                                </div>
+                            </ul>
+                        </li>
+                        <li class="nav-item menu-open">
+                            <a href="#" class="nav-link active">
+                                <i class="nav-icon fa-solid fa-user"></i>
+                                <p>
+                                    Owner
+                                    <i class="right fas fa-angle-left"></i>
+                                </p>
+                            </a>
+                            <ul id="owner-selector" class="nav nav-treeview">
+                                <div class="form-inline margin">
+                                    <span class="badge">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="radio2" id="btn_select_all_owners" checked>
+                                                <label class="form-check-label text-primary text-md">All</label>
+                                            </div>
+                                        </span>
+                                    <span class="badge ml-auto">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="radio2" id="btn_select_none_owners">
+                                            <label class="form-check-label text-light text-md">None</label>
+                                        </div>
+                                    </span>
+                                </div>
+                            </ul>
+                        </li>
+                        <li class="nav-item menu-open">
+                            <a href="#" class="nav-link active">
+                                <i class="nav-icon fa-solid fa-hourglass-end"></i>
+                                <p>
+                                    Status
+                                    <i class="right fas fa-angle-left"></i>
+                                </p>
+                            </a>
+                            <ul id="status-selector" class="nav nav-treeview">
+                                <div class="form-inline margin">
+                                    <span class="badge">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="radio3" id="btn_select_all_statuses" checked>
+                                                <label class="form-check-label text-primary text-md">All</label>
+                                            </div>
+                                        </span>
+                                    <span class="badge ml-auto">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="radio3" id="btn_select_none_statuses">
+                                            <label class="form-check-label text-light text-md">None</label>
+                                        </div>
+                                    </span>
+                                </div>
+                            </ul>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+    </aside>
+
+    <div class="content-wrapper">
+        <section class="content">
+            <div class="container-fluid">
                 <div class="row">
-                    <div class="col">
-                        <div class="input-group mb-3">
-                            <label class="input-group-text" for="select_marker_size">
-                                <span><i class="fa-solid fa-paintbrush"></i> Color filter</span>
-                            </label>
-                            <select id="select_color_filter" class="form-select">
-                                <option selected value="site">SITE</option>
-                                <option value="owner">OWNER</option>
-                                <option value="status">STATUS</option>
-                                <option value="hostname">HOSTNAME</option>
-                            </select>
+                    <div class="col-12">
+                        <div id="data_loading_preloader">
+                            <div class="semilayer"></div>
+                            <div id="spinner">
+                                <p>loading</p>
+                                <span></span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col">
-                        <div class="input-group mb-3">
-                            <label class="input-group-text" for="select_marker_size">
-                                <span><i class="fa-solid fa-circle-dot"></i> Marker size: </span>
-                            </label>
-                            <input id="select_marker_size" class="flex-grow-1 mx-1" type="range" min="0" step="0.1" max="5" value="1">
-                            <h5><span class="badge bg-primary"><output>1.0</output></span></h5>
-                        </div>
+                        <figure class="highcharts-figure">
+                            <div id="masterdetail-container" style="position: relative;"></div>
+                        </figure>
                     </div>
                 </div>
-                <div id="data_loading_preloader">
-                    <div class="semilayer"></div>
-                    <div id="spinner">
-                        <p>loading</p>
-                        <span></span>
+                <div class="row">
+                    <div class="col-12">
+                        <figure class="highcharts-figure"></figure>
+                            <div id="duration-container" style="position: relative;"></div>
+                        </figure>
                     </div>
                 </div>
-                <figure class="highcharts-figure">
-                    <div id="highcharts-container" style="position: relative;"></div>
-                </figure>
+                <div class="row">
+                    <div class="col-12">
+                        <figure class="highcharts-figure"></figure>
+                            <div id="durationCount-container" style="position: relative;"></div>
+                        </figure>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-12">
+                        <table id="datatable" class="table table-bordered table-hover"></table>
+                    </div>
+                </div>
             </div>
-        </div>
+        </section>
+    </div>
     </div>
 </body>
+
 <script>
-    let GLOBAL_DATA = undefined,
-        FILTERS = [],
-        START_TIME, // for daterangepicker
-        END_TIME, // for daterangepicker
-        dt_format = 'YYYY-MM-DD HH:mm:ss';
-
-    $.ajax({
-        url: "get_filters",
-    }).done(function(response) {
-        $("#data_loading_preloader").css("display", "none");
-        var filters = response["filters"];
-
-        filters["sites"].forEach((site) => {
-            drawFilter("#site-selector p", `site:${site}`, site);
-            FILTERS.push(`site:${site}`);
-        });
-        filters["owners"].forEach((owner) => {
-            drawFilter("#owner-selector p", `owner:${owner}`, owner);
-            FILTERS.push(`owner:${owner}`);
-        });
-        filters["statuses"].forEach((status) => {
-            drawFilter("#status-selector p", `status:${status}`, status);
-            FILTERS.push(`status:${status}`);
-        });
-
-        // daterangepicker
-        var start_end = createDateRangePicker();
-        START_TIME = start_end[0].format(dt_format);
-        END_TIME = start_end[1].format(dt_format);
-        $('#reportrange').on('apply.daterangepicker', function(ev, picker) {
-            START_TIME = picker.startDate.format(dt_format);
-            END_TIME = picker.endDate.format(dt_format);
-            showTooltip($(this));
-        });
-
-        function startDefaultDownload() {
-            $("#data_loading_preloader").css("display", "block");
-            getDataByFilters(FILTERS, START_TIME, END_TIME);
-        };
-
-        startDefaultDownload();
-
-        // рисует кнопку Show рядом с чекбоксом
-        function showTooltip(el) {
-            $(".tooltip").remove();
-            var show_btn = $("<button />", {
-                text: 'Show',
-                class: 'btn btn-primary',
-                click: function() {
-                    if (FILTERS.length > 0) {
-                        $("#data_loading_preloader").css("display", "block");
-                        getDataByFilters(FILTERS, START_TIME, END_TIME);
-                    };
-                    $(".tooltip").remove();
-                }
-            });
-            var tooltip = new bootstrap.Tooltip(el, {
-                template: '<div class="tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner"></div></div>',
-                placement: 'auto',
-                html: true,
-                title: show_btn,
-                trigger: "click manual",
-            });
-            tooltip.show();
-        }
-
-        // choosing one data filter
-        $("input[type=checkbox][value!='all']").on("change", function() {
-            let value = $(this).val();
-            if ($(this).is(":checked")) FILTERS.push(value);
-            else FILTERS.splice(FILTERS.indexOf(value), 1);
-            showTooltip($(this));
-        });
-
-        // choosing all data filters of a selector
-        $("input[type=checkbox][value='all']").click(function() {
-            var checkbox_all = $(this);
-            checkbox_all.closest(".card").find("input[type=checkbox][value!='all']").each(function() {
-                $(this).prop("checked", checkbox_all.is(":checked"));
-                if ($(this).is(":checked")) {
-                    FILTERS.push($(this).val());
-                } else
-                    FILTERS.splice(FILTERS.indexOf($(this).val()), 1);
-            });
-            showTooltip($(this));
-        });
-
-        // choosing color filter
-        $("#select_color_filter").on('change', function() {
-            detailChart.showLoading();
-            DrawHighChart(GLOBAL_DATA, $(this).val());
-            detailChart.hideLoading();
-        });
-
-        // choosing marker size
-        $("#select_marker_size").on('input', function() {
-            $("output").html($(this).val());
-        });
-        $("#select_marker_size").on('change', function() {
-            detailChart.showLoading();
-            detailChart.series.map(series => series.update({
-                marker: {
-                    radius: Number($(this).val())
-                }
-            }, false));
-            detailChart.redraw();
-            setLegendSymbolSize(legendSymbolSize);
-            detailChart.hideLoading();
-        });
-    });
+    var DiracChart = new App();
+    DiracChart.StartApp();
 </script>
-<style>
-    .container-fluid {
-        padding-left: 0 !important;
-        padding-right: 0 !important;
-    }
-    
-    .tooltip {
-        z-index: 1;
-    }
-    
-    .tooltip-inner {
-        padding: 0 !important;
-    }
-    
-    .form-switch>.form-check-label {
-        font-weight: bold;
-    }
-    
-    #reportrange {
-        background: #fff;
-        cursor: pointer;
-        border: 1px solid #ccc;
-        width: 100%;
-        white-space: break-spaces;
-    }
-    
-    #reportrange>span {
-        padding: 5px;
-    }
-    
-    .daterangepicker {
-        position: absolute;
-        z-index: 2;
-        background-color: #fff;
-    }
-    
-    #detail-container,
-    #master-container {
-        position: absolute;
-        overflow: unset !important;
-        width: 100%;
-    }
-    
-    #master-container {
-        height: 20vh;
-    }
-    
-    .semilayer {
-        background-color: #fff;
-        margin: 0 auto;
-        opacity: 0.7;
-        /* Прозрачность в IE */
-        filter: alpha(Opacity=70);
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        z-index: 3;
-    }
-    
-    #spinner {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        z-index: 4;
-        transform: translate(-50%, -50%);
-        backdrop-filter: blur(2px);
-        width: 150px;
-        height: 150px;
-        background: transparent;
-        border: 3px solid #adb5bd;
-        border-radius: 50%;
-        text-align: center;
-        line-height: 150px;
-        font-family: sans-serif;
-        font-size: 20px;
-        color: #0d6dfd;
-        letter-spacing: 4px;
-        text-transform: uppercase;
-        text-shadow: 0 0 10px #0d6dfd;
-        box-shadow: 0 0 20px rgba(0, 0, 0, .5);
-    }
-    
-    #spinner:before {
-        content: '';
-        position: absolute;
-        top: -3px;
-        left: -3px;
-        width: 100%;
-        height: 100%;
-        border: 3px solid transparent;
-        border-radius: 50%;
-        animation: animateC 2s linear infinite;
-    }
-    
-    #spinner>span {
-        display: block;
-        position: absolute;
-        top: calc(50% - 2px);
-        left: 50%;
-        width: 50%;
-        height: 4px;
-        background: transparent;
-        transform-origin: left;
-        animation: animate 2s linear infinite;
-    }
-    
-    #spinner>span:before {
-        content: '';
-        position: absolute;
-        width: 16px;
-        height: 16px;
-        border-radius: 50%;
-        background: #0d6dfd;
-        top: -6px;
-        right: -8px;
-        box-shadow: 0 0 20px #0d6dfd;
-    }
-    
-    @keyframes animateC {
-        0% {
-            transform: rotate(0deg);
-        }
-        100% {
-            transform: rotate(360deg);
-        }
-    }
-    
-    @keyframes animate {
-        0% {
-            transform: rotate(45deg);
-        }
-        100% {
-            transform: rotate(405deg);
-        }
-    }
-</style>
 
 </html>

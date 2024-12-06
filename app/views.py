@@ -11,7 +11,7 @@ from django.http import JsonResponse, HttpResponse
 
 def index(request):
     #return render(request, 'index.html', {})
-    return render(request, 'indexapp.html', {'randint': str(randint(1, 99999))})
+    return render(request, 'index.html', {'randint': str(randint(1, 99999))})
 
 
 def get_filters(request):
