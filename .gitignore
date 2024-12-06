@@ -162,5 +162,5 @@ cython_debug/
 # data
 static/data.csv
 
-# settings
+# settings.py
 dirac_chart/settings.py
