@@ -55,10 +55,12 @@ let DiracChart_Visualization = function(app) {
             zoomedDataForMasterChart: undefined,
             dataForDurationChart: undefined,
             //dataForDurationCountChart: undefined,
+            y_value: null,
             colorBy: null,
             markerSize: 0.1,
 
             initiateModel: function() {
+                this.y_value = vis.Configuration.y_value;
                 this.colorBy = vis.Configuration.colorBy;
                 this.markerSize = vis.Configuration.markerSize;
                 this.recent_actions = [];
@@ -77,6 +79,7 @@ let DiracChart_Visualization = function(app) {
             reset: function() {
                 this.app = null;
                 this.data = null;
+                this.y_value = null;
                 this.colorBy = null;
                 this.markerSize = 0.1;
                 this.detailChart = null;
@@ -104,14 +107,14 @@ let DiracChart_Visualization = function(app) {
                                 seriesData[i].data.push({
                                     job_id: obj.job_id,
                                     x: obj.cpu_norm + Math.random() * 0.1 - 0.05,
-                                    y: obj.end_time - obj.start_time,
+                                    y: Date.parse(obj.end_time) - obj.start_time,
                                     start_time: obj.start_time
                                 });
                             } else {
                                 seriesData[i].data.push({
                                     job_id: obj.job_id,
                                     x: obj.cpu_norm + Math.random() * 0.1 - 0.05,
-                                    y: (obj.end_time - obj.start_time) / obj.cpu_time,
+                                    y: (Date.parse(obj.end_time) - obj.start_time) / obj.cpu_time,
                                     start_time: obj.start_time
                                 });
                             }
@@ -253,61 +256,68 @@ let DiracChart_Visualization = function(app) {
                     }
                 });
 
-                // console.log(groupMap);
+                console.log(groupMap);
 
                 for (const groupName in groupMap) {
                     if (!result[groupName]) {
                         result[groupName] = {};
                     };
                     groupMap[groupName].forEach(obj => {
-                        const duration = obj['wall_time' in obj ? 'wall_time' : 'y'];
+                        let duration;
+                        if (vis.Model.y_value === "diracWT") {
+                            duration = obj.wall_time;
+                        } else if (vis.Model.y_value === "realWT") {
+                            duration = Date.parse(obj.end_time) - obj.start_time;
+                        } else {
+                            duration = (Date.parse(obj.end_time) - obj.start_time) / obj.cpu_time;
+                        }
                         if (duration !== undefined) {
                             result[groupName][duration] = (result[groupName][duration] || 0) + 1;
                         }
                     });
                 }
-                // console.log(result);
+                console.log(result);
                 return result;
             },
 
             // не используем
-            initDataForDurationCountChart: function(inputData) {
-                const grouped = inputData.reduce((acc, item) => {
-                    const key = item[vis.Model.colorBy];
-                    const wallTime = item.wall_time;
+            // initDataForDurationCountChart: function(inputData) {
+            //     const grouped = inputData.reduce((acc, item) => {
+            //         const key = item[vis.Model.colorBy];
+            //         const wallTime = item.wall_time;
 
-                    if (!acc[wallTime]) {
-                        acc[wallTime] = {};
-                    }
+            //         if (!acc[wallTime]) {
+            //             acc[wallTime] = {};
+            //         }
 
-                    if (!acc[wallTime][key]) {
-                        acc[wallTime][key] = 0;
-                    }
+            //         if (!acc[wallTime][key]) {
+            //             acc[wallTime][key] = 0;
+            //         }
 
-                    acc[wallTime][key] += 1;
+            //         acc[wallTime][key] += 1;
 
-                    return acc;
-                }, {});
+            //         return acc;
+            //     }, {});
 
-                const result = [];
+            //     const result = [];
 
-                // Получаем все уникальные значения wall_time
-                const wallTimes = Object.keys(grouped);
+            //     // Получаем все уникальные значения wall_time
+            //     const wallTimes = Object.keys(grouped);
 
-                // Получаем все уникальные значения vis.Model.colorBy (например, 'site')
-                const uniqueKeys = [...new Set(inputData.map(item => item[vis.Model.colorBy]))];
+            //     // Получаем все уникальные значения vis.Model.colorBy (например, 'site')
+            //     const uniqueKeys = [...new Set(inputData.map(item => item[vis.Model.colorBy]))];
 
-                // Формируем результирующий массив
-                uniqueKeys.forEach(name => {
-                    const dataPoints = wallTimes.map(wallTime => {
-                        return grouped[wallTime][name] || 0; // Если нет записей, то 0
-                    });
+            //     // Формируем результирующий массив
+            //     uniqueKeys.forEach(name => {
+            //         const dataPoints = wallTimes.map(wallTime => {
+            //             return grouped[wallTime][name] || 0; // Если нет записей, то 0
+            //         });
 
-                    result.push({ name, data: dataPoints });
-                });
+            //         result.push({ name, data: dataPoints });
+            //     });
 
-                return result;
-            }
+            //     return result;
+            // }
         },
 
         this.View = {
@@ -504,7 +514,7 @@ let DiracChart_Visualization = function(app) {
                     },
                     yAxis: {
                         title: {
-                            text: "WallTime (secs)",
+                            text: $("#select_y_value option:selected").text() + " (secs)",
                         },
                         labels: {
                             formatter: function() {
