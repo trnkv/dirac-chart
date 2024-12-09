@@ -256,7 +256,7 @@ let DiracChart_Visualization = function(app) {
                     }
                 });
 
-                console.log(groupMap);
+                // console.log(groupMap);
 
                 for (const groupName in groupMap) {
                     if (!result[groupName]) {
@@ -276,7 +276,7 @@ let DiracChart_Visualization = function(app) {
                         }
                     });
                 }
-                console.log(result);
+                // console.log(result);
                 return result;
             },
 
@@ -518,6 +518,7 @@ let DiracChart_Visualization = function(app) {
                         },
                         labels: {
                             formatter: function() {
+                                if (this.value > 1000000) return this.value / 1000000 + "M"
                                 return this.value / 1000 + "K"
                             },
                             x: 5,
