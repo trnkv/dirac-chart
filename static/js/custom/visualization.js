@@ -94,42 +94,42 @@ let DiracChart_Visualization = function(app) {
             initDataForDetailChart: function(inputData) {
                 let seriesData = [];
                 inputData.forEach((obj) => {
-                    for (var i = 0; i < seriesData.length; i++) {
-                        if (seriesData[i].name == obj[vis.Model.colorBy]) {
-                            if (vis.Model.y_value === "diracWT") {
-                                seriesData[i].data.push({
-                                    job_id: obj.job_id,
-                                    x: obj.cpu_norm + Math.random() * 0.1 - 0.05,
-                                    y: obj.wall_time,
-                                    start_time: obj.start_time
-                                });
-                            } else if (vis.Model.y_value === "realWT") {
-                                seriesData[i].data.push({
-                                    job_id: obj.job_id,
-                                    x: obj.cpu_norm + Math.random() * 0.1 - 0.05,
-                                    y: Date.parse(obj.end_time) - obj.start_time,
-                                    start_time: obj.start_time
-                                });
-                            } else {
-                                seriesData[i].data.push({
-                                    job_id: obj.job_id,
-                                    x: obj.cpu_norm + Math.random() * 0.1 - 0.05,
-                                    y: (Date.parse(obj.end_time) - obj.start_time) / obj.cpu_time,
-                                    start_time: obj.start_time
-                                });
-                            }
-                            return;
-                        }
-                    }
-                    seriesData.push({
-                        name: obj[vis.Model.colorBy],
-                        data: [{
+                    to_push = {};
+                    if (vis.Model.y_value === "diracWT") {
+                        to_push = {
                             job_id: obj.job_id,
                             x: obj.cpu_norm + Math.random() * 0.1 - 0.05,
                             y: obj.wall_time,
                             start_time: obj.start_time
-                        }],
+                        }
+                    }
+                    if (vis.Model.y_value === "realWT") {
+                       to_push = {
+                            job_id: obj.job_id,
+                            x: obj.cpu_norm + Math.random() * 0.1 - 0.05,
+                            y: obj.real_wt,
+                            start_time: obj.start_time
+                        }
+                    }
+                    if (vis.Model.y_value === "other") {
+                       to_push = {
+                            job_id: obj.job_id,
+                            x: obj.cpu_norm + Math.random() * 0.1 - 0.05,
+                            y: obj.efficiency,
+                            start_time: obj.start_time
+                        }
+                    }
+                    for (var i = 0; i < seriesData.length; i++) {
+                        if (seriesData[i].name == obj[vis.Model.colorBy]) {
+                            seriesData[i].data.push(to_push);
+                            return
+                         }
+                    }
+                    seriesData.push({
+                        name: obj[vis.Model.colorBy],
+                        data: [to_push],
                     });
+
                 });
                 return seriesData;
             },
@@ -513,14 +513,15 @@ let DiracChart_Visualization = function(app) {
                         },
                     },
                     yAxis: {
+                        min: 0,
                         title: {
                             text: $("#select_y_value option:selected").text() + " (secs)",
                         },
                         labels: {
-                            formatter: function() {
-                                if (this.value > 1000000) return this.value / 1000000 + "M"
-                                return this.value / 1000 + "K"
-                            },
+                            //formatter: function() {
+                                //if (this.value > 1000000) return this.value / 1000000 + "M"
+                                //return this.value / 1000 + "K"
+                            //},
                             x: 5,
                             zIndex: 6
                         },
@@ -803,6 +804,7 @@ let DiracChart_Visualization = function(app) {
                     traces.push({
                         'x': obj['data'],
                         'type': 'histogram',
+                        'nbinsx': 100,
                         'name': obj['name'],
                         //'text': obj['data'].map(sec => vis.Utils.secondsToDhms(sec)),
                         'hoverinfo': 'all',
