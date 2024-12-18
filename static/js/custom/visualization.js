@@ -142,7 +142,8 @@ let DiracChart_Visualization = function(app) {
                     jobs = [];
 
                 allData.forEach(obj => {
-                    var y = 'wall_time' in obj ? 'wall_time' : 'y';
+                    //var y = 'wall_time' in obj ? 'wall_time' : 'y';
+                    var y = 'real_wt';
                     jobs.push([obj.start_time, Math.trunc(obj.start_time + obj[y] * 1000)])
                 });
 
