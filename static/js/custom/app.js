@@ -98,7 +98,8 @@ var App = function () {
                 obj['start_time'] = new Date(obj['start_time']).getTime();
                 obj['x'] = obj['start_time'];
                 obj['real_wt'] = (Date.parse(obj.end_time) - obj.start_time) / 1000;
-                obj['efficiency'] = obj.total_time / (Date.parse(obj.end_time) - obj.start_time) * 1000; 
+                //obj['efficiency'] = obj.total_time / (Date.parse(obj.end_time) - obj.start_time) * 1000; 
+                obj['efficiency'] = obj.total_time / obj.wall_time;
             })
             this.data_filtered = Object.assign([], this.base_data);
             this.countOfPoints = this.data_filtered.length;
