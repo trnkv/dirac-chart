@@ -48,6 +48,7 @@ var App = function () {
         base_data: null,
         data_filtered: null,
         filters: null,
+        job_group_filter: "",
         startTime: null,
         endTime: null,
         done_handler: null,
@@ -65,12 +66,17 @@ var App = function () {
             this.base_data = null;
             this.data_filtered = null;
             this.filters = null;
+            this.job_group_filter = "";
             this.startTime = null;
             this.endTime = null;
             this.done_handler = null;
             this.recent_actions = null;
             this.datatable = null;
             this.visualization = null;
+        },
+
+        setJobGroupFilter: function (job_group) {
+            this.job_group_filter = job_group;
         },
 
         getFilters: function () {
@@ -98,7 +104,8 @@ var App = function () {
                 obj['start_time'] = new Date(obj['start_time']).getTime();
                 obj['x'] = obj['start_time'];
                 obj['real_wt'] = (Date.parse(obj.end_time) - obj.start_time) / 1000;
-                obj['efficiency'] = obj.total_time / (Date.parse(obj.end_time) - obj.start_time) * 1000; 
+                obj['efficiency'] = obj.total_time / (Date.parse(obj.end_time) - obj.start_time) * 1000;
+                //obj['cpu_norm'] = 1 / (obj['cpu_norm'] + Math.random() * 0.1 - 0.05);
             })
             this.data_filtered = Object.assign([], this.base_data);
             this.countOfPoints = this.data_filtered.length;
@@ -175,6 +182,10 @@ var App = function () {
             });
             app.Model.data_filtered = [];
             app.Model.data_filtered = app.Model.base_data.filter(function (el) {
+                if (app.Model.job_group_filter != "") {
+                     if (!el.job_group.includes(app.Model.job_group_filter))
+                         return false;
+                }
                 return filters['site'].includes(el.site) &&
                     filters['owner'].includes(el.owner) &&
                     filters['status'].includes(el.status);
@@ -300,6 +311,12 @@ var App = function () {
                 app.View.check_none("status");
                 app.Controller.recordRecentAction($(this));
             });
+            
+            $('#btn_apply_job_group_filter').click(function () {
+                app.Controller.setJobGroupFilter(document.getElementById('input_job_group').value);
+                app.Controller.recordRecentAction($(this));
+            });
+
         },
 
         drawFilter: function (selector, value, text) {
@@ -451,6 +468,11 @@ var App = function () {
             app.Model.reset();
             app.View.reset();
             app.Controller.initiateApp();
+        },
+        
+        setJobGroupFilter: function (job_group) {
+            app.Model.setJobGroupFilter(job_group);
+            this.filtersChanged();
         },
 
         filtersChanged: function () {
