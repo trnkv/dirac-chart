@@ -260,7 +260,7 @@ let DiracChart_Visualization = function(app) {
 
                 for (const groupName in groupMap) {
                     if (!result[groupName]) {
-                        result[groupName] = {};
+                        result[groupName] = [];
                     };
                     groupMap[groupName].forEach(obj => {
                         let duration;
@@ -272,7 +272,7 @@ let DiracChart_Visualization = function(app) {
                             duration = (Date.parse(obj.end_time) - obj.start_time) / obj.cpu_time;
                         }
                         if (duration !== undefined) {
-                            result[groupName][duration] = (result[groupName][duration] || 0) + 1;
+                            result[groupName].push(duration);
                         }
                     });
                 }
@@ -504,6 +504,7 @@ let DiracChart_Visualization = function(app) {
                         }
                     },
                     xAxis: {
+                        min: 0,
                         title: {
                             text: "DB12 value",
                         },
@@ -794,11 +795,12 @@ let DiracChart_Visualization = function(app) {
             },
 
             createDurationChart: function() {
+                console.log(vis.Model.dataForDurationChart);
                 let data = Object.keys(vis.Model.dataForDurationChart).map(groupName => ({
                     'name': groupName,
-                    'data': Object.keys(vis.Model.dataForDurationChart[groupName]).map(walltime => Number(walltime))
+                    'data': vis.Model.dataForDurationChart[groupName]
                 }));
-                // console.log(data);
+                console.log(data);
                 let traces = [];
                 data.forEach(obj => {
                     traces.push({
