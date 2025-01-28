@@ -40,6 +40,9 @@
     <!-- AdminLTE v3.2.0 -->
     <link href="{% static 'css/adminlte-3.2.0.min.css' %}" rel="stylesheet" />
     <script src="{% static 'js/adminlte-3.2.0.js' %}"></script>
+    <!-- Select2 -->
+    <link href="{% static 'css/select2.min.css' %}" rel="stylesheet" />
+    <script src="{% static 'js/select2.min.js' %}"></script>
     <!-- Custom styles -->
     <link href="/static/css/custom/app.css?v={{ randint }}" rel="stylesheet" />
     <!-- Custom functions -->
@@ -101,8 +104,7 @@
                         <span class="badge badge-primary navbar-badge">0</span>
                     </a>
                     <div class="dropdown-menu dropdown-menu-xl dropdown-menu-right text-sm">
-                        <span class="dropdown-item dropdown-header">Recent actions <i
-                                class="fa-solid fa-arrow-down-long"></i></span>
+                        <span class="dropdown-item dropdown-header noclick">Recent actions <i class="fa-solid fa-arrow-down-long"></i></span>
                         <div class="dropdown-divider"></div>
                     </div>
                 </li>
@@ -230,15 +232,24 @@
                                     <i class="right fas fa-angle-left"></i>
                                 </p>
                             </a>
-                            <ul id="status-selector" class="nav nav-treeview">
+                            <ul id="job_group-selector" class="nav nav-treeview">
                                 <div class="form-inline margin">
-                                    <li>
-                                        <input class="form-control-sm" type="text" id="input_job_group">
-                                    </li>
-                                    <li>
-                                        <button type="button" class="btn btn-block btn-primary btn-sm" id="btn_apply_job_group_filter">Apply</button>
-                                    </li>
+                                    <span class="badge">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="radio3"
+                                                id="btn_select_all_job_groups" checked>
+                                            <label class="form-check-label text-primary text-md">All</label>
+                                        </div>
+                                    </span>
+                                    <span class="badge ml-auto">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="radio3"
+                                                id="btn_select_none_job_groups">
+                                            <label class="form-check-label text-light text-md">None</label>
+                                        </div>
+                                    </span>
                                 </div>
+                                <select id="job_groups"></select>
                             </ul>
                         </li>
                     </ul>

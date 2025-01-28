@@ -8,32 +8,6 @@ var App = function () {
     this.Configuration = {
         startTime: moment(new Date(2020, 0, 1)),
         datetime_format: 'YYYY-MM-DD HH:mm:ss',
-        // markerSize: 1.0,
-        // legendSymbolSize: 10,
-        dataTableConfig: {
-            columns: [
-                { 'data': 'data', 'title': $("#select_colorBy").val() },
-                { 'data': 'pointsCount', 'title': 'Count of points' },
-            ],
-            autowidth: false,
-            paging: true,
-            lengthChange: true,
-            searching: true,
-            ordering: true,
-            order: [
-                [1, "desc"]
-            ], // By default order by points count
-            info: true,
-            responsive: true,
-            retrieve: true,
-            dom: 'Blfrtip',
-            buttons: [
-                { extend: 'csv', className: '' },
-                { extend: 'excel', className: '' },
-                { extend: 'pdf', className: '' },
-                { extend: 'print', className: '' }
-            ],
-        }
     };
 
     this.Utils = {
@@ -48,12 +22,10 @@ var App = function () {
         base_data: null,
         data_filtered: null,
         filters: null,
-        job_group_filter: "",
         startTime: null,
         endTime: null,
         done_handler: null,
         recent_actions: null,
-        datatable: null,
         visualization: null,
 
         initiateModel: function () {
@@ -66,17 +38,11 @@ var App = function () {
             this.base_data = null;
             this.data_filtered = null;
             this.filters = null;
-            this.job_group_filter = "";
             this.startTime = null;
             this.endTime = null;
             this.done_handler = null;
             this.recent_actions = null;
-            this.datatable = null;
             this.visualization = null;
-        },
-
-        setJobGroupFilter: function (job_group) {
-            this.job_group_filter = job_group;
         },
 
         getFilters: function () {
@@ -174,21 +140,18 @@ var App = function () {
                 'site': [],
                 'owner': [],
                 'status': [],
+                'job_group': []
             };
             checked_filters.forEach(element => {
                 category = element.split(':')[0];
                 value = element.split(':')[1];
                 filters[category].push(value);
             });
-            app.Model.data_filtered = [];
             app.Model.data_filtered = app.Model.base_data.filter(function (el) {
-                if (app.Model.job_group_filter != "") {
-                     if (!el.job_group.includes(app.Model.job_group_filter))
-                         return false;
-                }
                 return filters['site'].includes(el.site) &&
                     filters['owner'].includes(el.owner) &&
-                    filters['status'].includes(el.status);
+                    filters['status'].includes(el.status) &&
+                    filters['job_group'].includes(el.job_group);
             });
         },
 
@@ -198,7 +161,6 @@ var App = function () {
     };
 
     this.View = {
-
         createDateRangePicker: function () {
             var start = moment(new Date(2020, 0, 1));
             var end = moment();
@@ -249,11 +211,6 @@ var App = function () {
             app.View.start_time = start_end[0].format(app.Configuration.datetime_format);
             app.View.end_time = start_end[1].format(app.Configuration.datetime_format);
 
-            var datatable = new DataTable('#datatable', app.Configuration.dataTableConfig);
-            // console.log(datatable);
-            app.Controller.dataTable_Changed(datatable);
-            $('#datatable_wrapper').hide();
-
             $('#reportrange').on('apply.daterangepicker', function (ev, picker) {
                 app.View.start_time = picker.startDate.format(app.Configuration.datetime_format);
                 app.View.end_time = picker.endDate.format(app.Configuration.datetime_format);
@@ -261,14 +218,16 @@ var App = function () {
             });
 
             $("#li_recent_actions").find(".badge").css("display", "none");
-            $('#btn_select_all_sites').prop("checked","checked");
-            $('#btn_select_all_owners').prop("checked","checked");
-            $('#btn_select_all_statuses').prop("checked","checked");
+            $('#btn_select_all_sites').prop("checked", "checked");
+            $('#btn_select_all_owners').prop("checked", "checked");
+            $('#btn_select_all_statuses').prop("checked", "checked");
+            $('#btn_select_all_job_groups').prop("checked", "checked");
 
             $('#btn_load_all').click(function () {
                 $('#btn_select_all_sites').trigger('click');
                 $('#btn_select_all_owners').trigger('click');
                 $('#btn_select_all_statuses').trigger('click');
+                $('#btn_select_all_job_groups').trigger('click');
                 app.Controller.loadAllData();
                 app.Controller.recordRecentAction($(this));
             });
@@ -283,7 +242,7 @@ var App = function () {
             });
 
             $('#btn_select_all_sites').click(function () {
-                app.View.check_all("site");
+                app.View.checkAllCheckboxes("site");
                 app.Controller.recordRecentAction($(this));
             });
 
@@ -293,7 +252,7 @@ var App = function () {
             });
 
             $('#btn_select_all_owners').click(function () {
-                app.View.check_all("owner");
+                app.View.checkAllCheckboxes("owner");
                 app.Controller.recordRecentAction($(this));
             });
 
@@ -303,7 +262,7 @@ var App = function () {
             });
 
             $('#btn_select_all_statuses').click(function () {
-                app.View.check_all("status");
+                app.View.checkAllCheckboxes("status");
                 app.Controller.recordRecentAction($(this));
             });
 
@@ -311,10 +270,36 @@ var App = function () {
                 app.View.check_none("status");
                 app.Controller.recordRecentAction($(this));
             });
-            
-            $('#btn_apply_job_group_filter').click(function () {
-                app.Controller.setJobGroupFilter(document.getElementById('input_job_group').value);
+
+            $('#btn_select_all_job_groups').click(function () {
+                $("#job_groups").val(app.Model.filters['job_group'].map(g => "job_group:" + g)).trigger('change');
                 app.Controller.recordRecentAction($(this));
+            });
+
+            $('#btn_select_none_job_groups').click(function () {
+                $("#job_groups").val(null).trigger('change');
+                app.Controller.recordRecentAction($(this));
+            });
+
+            $("#job_groups").select2({
+                placeholder: 'Select Job Group(s)',
+                width: "100%",
+                multiple: true,
+                tags: true,
+                tokenSeparators: [';', ','],
+                createTag: function (params) {
+                    var term = $.trim(params.term);
+
+                    if (term === '') {
+                        return null;
+                    }
+
+                    return {
+                        id: term,
+                        text: term,
+                        newTag: true // add additional parameters
+                    }
+                }
             });
 
         },
@@ -334,48 +319,25 @@ var App = function () {
         drawFilters: function (filters) {
             app.View.hidePreloader();
             for (category in filters) {
-                let id_name = "#" + category + "-selector";
-                for (element in filters[category]) {
-                    var value = category + ":" + filters[category][element];
-                    var caption = filters[category][element];
-                    this.drawFilter(id_name, value, caption);
+                if (category === "job_group") {
+                    for (element in filters['job_group']) {
+                        $("#job_groups").append(`<option value="job_group:${filters['job_group'][element]}">${filters['job_group'][element]}</option>`);
+                    }
+                    $("#job_groups").val(filters['job_group'].map(g => "job_group:" + g)).trigger('change');
+                } else {
+                    let id_name = "#" + category + "-selector";
+                    for (element in filters[category]) {
+                        var value = category + ":" + filters[category][element];
+                        var caption = filters[category][element];
+                        this.drawFilter(id_name, value, caption);
+                    }
                 }
             }
 
-            $("input[type=checkbox]").change(function () {
+            $("input[type=checkbox], #job_groups").change(function () {
                 app.Controller.filtersChanged();
                 app.Controller.recordRecentAction($(this));
             });
-        },
-
-        drawData: function () {
-            const data = app.Model.data_filtered;
-            if (data.length > 0) {
-                app.Model.visualization.View.drawChart();
-                this.resetDataTable();
-                this.drawDataTable(app.Model.visualization.Model.zoomedDataForDetailChart);
-            } else {
-                $('#masterdetail-container').html('<h4 class="text-primary">There is no data on this request</h4>\
-                <p>Change the request parameters and try again</p>');
-            }
-        },
-
-        drawDataTable: function (data) {
-            console.log('data for DataTable: ', data);
-            var dataForDataTable = [],
-                key = 'name';
-            var categories = Array.from(new Set(data.map(obj => obj[key])));
-            for (let i = 0; i < categories.length; i++) {
-                var category = categories[i],
-                    pointsCount = data.find(obj => {
-                        return obj.name === category
-                    }).data.length;
-                dataForDataTable.push({ 'data': category, 'pointsCount': pointsCount });
-            };
-            app.Model.datatable.rows.add(dataForDataTable); // Add new data
-            $(app.Model.datatable.column(0).header()).text(app.Model.visualization.Model.colorBy);
-            app.Model.datatable.columns.adjust().draw(); // Redraw the DataTable
-            $('#datatable_wrapper').show();
         },
 
         getCheckedFilters: function () {
@@ -383,15 +345,34 @@ var App = function () {
             $("input[type=checkbox]:checked").each(function () {
                 checkedFilters.push($(this).attr('id'))
             });
-            // console.log("Checked filters: ", checkedFilters);
+            checkedFilters = checkedFilters.concat($("#job_groups").val());
+            console.log("Checked filters: ", checkedFilters);
             return checkedFilters;
         },
 
         leaveOnlyCheckedFilters: function () {
             $("input[type=checkbox]:not(:checked)").parent().parent().parent().remove();
+            app.View.deleteNotSelectedJobGroups();
         },
 
-        check_all: function (category) {
+        redrawJobGroupSelector: function () {
+            const newJobGroups = [...new Set(app.Model.data_filtered.map(item => item.job_group))];
+            $("#job_groups").val(newJobGroups.map(g => "job_group:" + g)).trigger('change');
+            app.View.deleteNotSelectedJobGroups();
+        },
+
+        deleteNotSelectedJobGroups: function () {
+            // оставить только выбранные группы
+            $('#job_groups option').each(function () {
+                if (!$(this).is(':selected')) {
+                    $(this).remove(); // Удаляем опцию, если она не выбрана
+                }
+            });
+            // Обновляем Select2 после изменения
+            $('#job_groups').trigger('change.select2');
+        },
+
+        checkAllCheckboxes: function (category) {
             $(`input[type=checkbox].${category}-checkbox`).prop('checked', true);
         },
 
@@ -399,7 +380,7 @@ var App = function () {
             $(`input[type=checkbox].${category}-checkbox`).prop('checked', false);
         },
 
-        resetFilters: function() {
+        resetFilters: function () {
             $("input[type=checkbox]").parent().remove();
         },
 
@@ -410,20 +391,12 @@ var App = function () {
                 <span class="dropdown-item dropdown-header">Recent actions <i class="fa-solid fa-arrow-down-long"></i></span>\
                 <div class="dropdown-divider"></div>');
             $('#li_recent_actions').find(".badge").text(0);
-            app.View.resetDataTable();
-        },
-
-        resetDataTable: function () {
-            if (app.Model.datatable) {
-                app.Model.datatable.clear().draw();
-            }
-            $('#datatable_wrapper').hide();
         },
 
         drawRecentActions: function () {
             var last_action = app.Model.recent_actions[app.Model.recent_actions.length - 1];
             $("#li_recent_actions").find(".dropdown-menu").append(`\
-                <a href="#" class="dropdown-item">\
+                <a href="#" class="dropdown-item noclick">\
                     ${last_action['action_value']}\
                     <span class="float-right text-muted text-sm">${last_action['action_type']}</span>\
                 </a>`);
@@ -440,6 +413,11 @@ var App = function () {
             app.Model.getFilters();
             app.View.drawFilters(app.Model.filters);
             this.createVisualization();
+        },
+
+        createVisualization: function () {
+            app.Model.visualization = new DiracChart_Visualization(app);
+            app.Model.visualization.StartVis();
         },
 
         loadAllData: function () {
@@ -460,8 +438,19 @@ var App = function () {
 
         dataLoaded: function () {
             app.Model.visualization.Model.setData(app.Model.data_filtered);
-            app.View.drawData();
+            app.View.redrawJobGroupSelector();
+            app.Controller.callDrawer();
             app.View.hidePreloader();
+        },
+
+        callDrawer: function () {
+            const data = app.Model.data_filtered;
+            if (data.length > 0) {
+                app.Model.visualization.View.drawChart();
+            } else {
+                $('#masterdetail-container').html('<h4 class="text-primary">There is no data on this request</h4>\
+                <p>Change the request parameters and try again</p>');
+            }
         },
 
         reset: function () {
@@ -469,33 +458,21 @@ var App = function () {
             app.View.reset();
             app.Controller.initiateApp();
         },
-        
-        setJobGroupFilter: function (job_group) {
-            app.Model.setJobGroupFilter(job_group);
-            this.filtersChanged();
-        },
 
         filtersChanged: function () {
             if (app.Model.base_data) {
                 let checkedFilters = app.View.getCheckedFilters();
                 app.Model.applyFilters(checkedFilters);
                 app.Model.visualization.Model.setData(app.Model.data_filtered);
-                app.View.drawData();
+                app.Controller.callDrawer();
             }
-        },
-
-        createVisualization: function () {
-            app.Model.visualization = new DiracChart_Visualization(app);
-            app.Model.visualization.StartVis();
-        },
-
-        dataTable_Changed: function (datatable) {
-            app.Model.datatable = datatable;
         },
 
         recordRecentAction: function (triggered_element) {
             var action_type = new Date().getHours() + ":" + new Date().getMinutes() + ":" + new Date().getSeconds() + " | ",
                 action_value = "";
+            console.log(triggered_element.attr('id'));
+
 
             switch (triggered_element.attr('id')) {
                 case "reportrange":
@@ -517,6 +494,11 @@ var App = function () {
                     action_type += "Statuses";
                     action_value = triggered_element.parent().find("label").text();
                     break;
+                case "btn_select_all_job_groups":
+                case "btn_select_none_job_groups":
+                    action_type += "Job Groups";
+                    action_value = triggered_element.parent().find("label").text();
+                    break;
                 case "select_colorBy":
                     action_type += "Color";
                     action_value = "By " + triggered_element.find("option:selected").text();
@@ -524,6 +506,10 @@ var App = function () {
                 case "select_marker_size":
                     action_type += "Marker size";
                     action_value = $("#marker_size_value").text();
+                    break;
+                case "job_groups":
+                    action_type += "Job Group";
+                    action_value = $("#job_groups").val().join(', ').replaceAll("job_group:", "");
                     break;
             }
 
@@ -534,9 +520,9 @@ var App = function () {
                     var category = triggered_element.attr('id').split(':')[0];
                     action_type += category.charAt(0).toUpperCase() + category.slice(1);
                     if (!triggered_element.is(":checked")) {
-                        action_value = "- " + triggered_element.attr('id').split(':')[1];
+                        action_value = '<i class="fa-solid fa-circle-minus text-danger"></i> ' + triggered_element.attr('id').split(':')[1];
                     } else {
-                        action_value = "+ " + triggered_element.attr('id').split(':')[1];
+                        action_value = '<i class="fa-solid fa-circle-plus text-success"></i> ' + triggered_element.attr('id').split(':')[1];
                     }
                     break;
                 case /btn_load/.test(triggered_element.attr('id')):

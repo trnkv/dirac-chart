@@ -1,27 +1,51 @@
-let DiracChart_Visualization = function(app) {
+let DiracChart_Visualization = function (app) {
     let vis = this;
 
-    this.StartVis = function(data) {
+    this.StartVis = function (data) {
         this.Controller.initiateVis(data);
     };
 
     this.Configuration = {
-            markerSize: 1.0,
-            legendSymbolSize: 10,
-            y_value: $("#select_y_value").val(),
-            colorBy: $("#select_colorBy").val(),
-            useUTC: true,
-        },
+        markerSize: 1.0,
+        legendSymbolSize: 10,
+        y_value: $("#select_y_value").val(),
+        colorBy: $("#select_colorBy").val(),
+        useUTC: true,
+        dataTableConfig: {
+            columns: [
+                { 'data': 'data', 'title': $("#select_colorBy").val() },
+                { 'data': 'pointsCount', 'title': 'Count of points' },
+            ],
+            autowidth: false,
+            paging: true,
+            lengthChange: true,
+            searching: true,
+            ordering: true,
+            order: [
+                [1, "desc"]
+            ], // By default order by points count
+            info: true,
+            responsive: true,
+            retrieve: true,
+            dom: 'Blfrtip',
+            buttons: [
+                { extend: 'csv', className: '' },
+                { extend: 'excel', className: '' },
+                { extend: 'pdf', className: '' },
+                { extend: 'print', className: '' }
+            ],
+        }
+    },
 
         this.Utils = {
-            useUTC: function(flag) {
+            useUTC: function (flag) {
                 Highcharts.setOptions({
                     time: {
                         useUTC: flag,
                     }
                 });
             },
-            secondsToDhms: function(seconds) {
+            secondsToDhms: function (seconds) {
                 if (seconds) {
                     seconds = Number(seconds);
                     const d = Math.floor(seconds / (3600 * 24));
@@ -37,7 +61,7 @@ let DiracChart_Visualization = function(app) {
                 }
                 return seconds;
             },
-            msFormat: function(milliseconds) {
+            msFormat: function (milliseconds) {
                 // if (milliseconds)
                 return Highcharts.dateFormat('%e %b %Y, %H:%M:%S', new Date(milliseconds));
                 // return milliseconds;
@@ -49,34 +73,33 @@ let DiracChart_Visualization = function(app) {
             data: null,
             detailChart: null,
             masterChart: null,
+            datatable: null,
             dataForDetailChart: undefined,
             dataForMasterChart: undefined,
             zoomedDataForDetailChart: undefined,
             zoomedDataForMasterChart: undefined,
             dataForDurationChart: undefined,
-            //dataForDurationCountChart: undefined,
             y_value: null,
             colorBy: null,
             markerSize: 0.1,
 
-            initiateModel: function() {
+            initiateModel: function () {
                 this.y_value = vis.Configuration.y_value;
                 this.colorBy = vis.Configuration.colorBy;
                 this.markerSize = vis.Configuration.markerSize;
                 this.recent_actions = [];
             },
 
-            setData: function(data) {
+            setData: function (data) {
                 this.data = data;
                 this.dataForDetailChart = this.initDataForDetailChart(this.data);
                 this.dataForMasterChart = this.initDataForMasterChart(this.data);
                 this.zoomedDataForDetailChart = JSON.parse(JSON.stringify(this.dataForDetailChart));
                 this.zoomedDataForMasterChart = JSON.parse(JSON.stringify(this.dataForMasterChart));
                 this.dataForDurationChart = this.initDataForDurationChart(this.data);
-                //this.dataForDurationCountChart = this.initDataForDurationCountChart(this.data);
             },
 
-            reset: function() {
+            reset: function () {
                 this.app = null;
                 this.data = null;
                 this.y_value = null;
@@ -84,6 +107,7 @@ let DiracChart_Visualization = function(app) {
                 this.markerSize = 0.1;
                 this.detailChart = null;
                 this.masterChart = null;
+                this.datatable = null;
                 this.dataForMasterChart = undefined;
                 this.dataForDetailChart = undefined;
                 this.zoomedDataForDetailChart = undefined;
@@ -91,7 +115,7 @@ let DiracChart_Visualization = function(app) {
                 this.dataForDurationChart = undefined;
             },
 
-            initDataForDetailChart: function(inputData) {
+            initDataForDetailChart: function (inputData) {
                 let seriesData = [];
                 inputData.forEach((obj) => {
                     to_push = {};
@@ -104,7 +128,7 @@ let DiracChart_Visualization = function(app) {
                         }
                     }
                     if (vis.Model.y_value === "realWT") {
-                       to_push = {
+                        to_push = {
                             job_id: obj.job_id,
                             x: obj.cpu_norm + Math.random() * 0.1 - 0.05,
                             y: obj.real_wt,
@@ -112,7 +136,7 @@ let DiracChart_Visualization = function(app) {
                         }
                     }
                     if (vis.Model.y_value === "other") {
-                       to_push = {
+                        to_push = {
                             job_id: obj.job_id,
                             x: obj.cpu_norm + Math.random() * 0.1 - 0.05,
                             y: obj.efficiency,
@@ -123,7 +147,7 @@ let DiracChart_Visualization = function(app) {
                         if (seriesData[i].name == obj[vis.Model.colorBy]) {
                             seriesData[i].data.push(to_push);
                             return
-                         }
+                        }
                     }
                     seriesData.push({
                         name: obj[vis.Model.colorBy],
@@ -134,7 +158,7 @@ let DiracChart_Visualization = function(app) {
                 return seriesData;
             },
 
-            initDataForMasterChart: function(inputData) {
+            initDataForMasterChart: function (inputData) {
                 //console.log(inputData);
                 const start = Date.now();
                 let result = {},
@@ -147,7 +171,7 @@ let DiracChart_Visualization = function(app) {
                     jobs.push([obj.start_time, Math.trunc(obj.start_time + obj[y] * 1000)])
                 });
 
-                jobs.sort(function(a, b) { return a[0] - b[0] });
+                jobs.sort(function (a, b) { return a[0] - b[0] });
                 //console.log(jobs);
 
                 let running_at_time = {};
@@ -167,7 +191,7 @@ let DiracChart_Visualization = function(app) {
                     current += 1;
                     running_at_time[start] = current;
                     stop_times.push(stop);
-                    stop_times.sort(function(a, b) { return a - b });
+                    stop_times.sort(function (a, b) { return a - b });
                 }
                 for (let i = 0; i < stop_times.length; i++) {
                     const stop = stop_times[i];
@@ -179,7 +203,7 @@ let DiracChart_Visualization = function(app) {
 
                 result = Object.entries(running_at_time);
                 result = result.map(pair => [parseInt(pair[0]), pair[1]]);
-                result.sort(function(a, b) { return a[0] - b[0] });
+                result.sort(function (a, b) { return a[0] - b[0] });
                 //console.log(result);
                 //console.log(result.length);
 
@@ -241,7 +265,7 @@ let DiracChart_Visualization = function(app) {
                 return result;
             },
 
-            initDataForDurationChart: function(inputData) {
+            initDataForDurationChart: function (inputData) {
                 let groupMap = {},
                     groupBy = vis.Model.colorBy,
                     result = {};
@@ -280,87 +304,71 @@ let DiracChart_Visualization = function(app) {
                 // console.log(result);
                 return result;
             },
-
-            // не используем
-            // initDataForDurationCountChart: function(inputData) {
-            //     const grouped = inputData.reduce((acc, item) => {
-            //         const key = item[vis.Model.colorBy];
-            //         const wallTime = item.wall_time;
-
-            //         if (!acc[wallTime]) {
-            //             acc[wallTime] = {};
-            //         }
-
-            //         if (!acc[wallTime][key]) {
-            //             acc[wallTime][key] = 0;
-            //         }
-
-            //         acc[wallTime][key] += 1;
-
-            //         return acc;
-            //     }, {});
-
-            //     const result = [];
-
-            //     // Получаем все уникальные значения wall_time
-            //     const wallTimes = Object.keys(grouped);
-
-            //     // Получаем все уникальные значения vis.Model.colorBy (например, 'site')
-            //     const uniqueKeys = [...new Set(inputData.map(item => item[vis.Model.colorBy]))];
-
-            //     // Формируем результирующий массив
-            //     uniqueKeys.forEach(name => {
-            //         const dataPoints = wallTimes.map(wallTime => {
-            //             return grouped[wallTime][name] || 0; // Если нет записей, то 0
-            //         });
-
-            //         result.push({ name, data: dataPoints });
-            //     });
-
-            //     return result;
-            // }
         },
 
         this.View = {
-            initiateView: function() {
+            initiateView: function () {
                 vis.Utils.useUTC(vis.Configuration.useUTC);
                 $('#masterdetail-container').html('<div id="detail-container"></div><div id="master-container"></div>');
                 $('#select_color_filter, #select_marker_size').prop("disabled", false);
                 $('#select_marker_size').val(vis.Configuration.markerSize);
                 vis.View.displayMarkerSize(vis.Configuration.markerSize);
 
-                $("#select_marker_size").on('input', function() {
+                $("#select_marker_size").on('input', function () {
                     vis.View.displayMarkerSize((Number($(this).val())).toFixed(1));
                 });
-                $("#select_marker_size").on('change', function() {
+                $("#select_marker_size").on('change', function () {
                     vis.Model.app.Controller.recordRecentAction($(this));
                     vis.Controller.markerSize_Changed(Number($(this).val()));
                 });
                 vis.Controller.setColorBy(vis.Configuration.colorBy);
 
-                $("#select_y_value").on('change', function() {
+                $("#select_y_value").on('change', function () {
                     vis.Model.app.Controller.recordRecentAction($(this));
                     vis.Controller.y_value_Changed($(this).val());
                 });
 
-                $("#select_colorBy").on('change', function() {
+                $("#select_colorBy").on('change', function () {
                     vis.Model.app.Controller.recordRecentAction($(this));
                     vis.Controller.colorBy_Changed($(this).val());
                 });
+
+                var datatable = new DataTable('#datatable', vis.Configuration.dataTableConfig);
+                // console.log(datatable);
+                vis.Controller.dataTable_Changed(datatable);
+                $('#datatable_wrapper').hide();
             },
 
-            drawChart: function() {
+            drawChart: function () {
                 this.createMasterDetailChart();
                 this.createDurationChart();
-                //this.createDurationCountChart();
-                vis.Model.app.View.resetDataTable();
-                vis.Model.app.View.drawDataTable(vis.Model.zoomedDataForDetailChart);
+                vis.View.resetDataTable();
+                vis.View.drawDataTable(vis.Model.zoomedDataForDetailChart);
                 $('#master-container').css({
                     'top': vis.Model.detailChart.chartHeight + "px"
                 });
             },
 
-            createDetailChart: function(masterChart) {
+            drawDataTable: function (data) {
+                console.log('data for DataTable: ', data);
+                vis.View.resetDataTable();
+                var dataForDataTable = [],
+                    key = 'name';
+                var categories = Array.from(new Set(data.map(obj => obj[key])));
+                for (let i = 0; i < categories.length; i++) {
+                    var category = categories[i],
+                        pointsCount = data.find(obj => {
+                            return obj.name === category
+                        }).data.length;
+                    dataForDataTable.push({ 'data': category, 'pointsCount': pointsCount });
+                };
+                vis.Model.datatable.rows.add(dataForDataTable); // Add new data
+                $(vis.Model.datatable.column(0).header()).text(vis.Model.colorBy);
+                vis.Model.datatable.columns.adjust().draw(); // Redraw the DataTable
+                $('#datatable_wrapper').show();
+            },
+
+            createDetailChart: function (masterChart) {
                 const dataForDetail = vis.Model.zoomedDataForDetailChart.map(series => series.data).reduce((accumulator, currentArray) => {
                     return accumulator.concat(currentArray);
                 }, []);
@@ -389,10 +397,10 @@ let DiracChart_Visualization = function(app) {
                             }
                         },
                         events: {
-                            render: function() {
+                            render: function () {
                                 this.showResetZoom();
                             },
-                            selection: function(event) {
+                            selection: function (event) {
                                 this.showLoading();
                                 const min_start_time = vis.Model.zoomedDataForMasterChart[0][0],
                                     max_start_time = vis.Model.zoomedDataForMasterChart[vis.Model.zoomedDataForMasterChart.length - 1][0];
@@ -419,7 +427,7 @@ let DiracChart_Visualization = function(app) {
                                 }
                                 // console.log(minX, maxX, minY, maxY);
 
-                                vis.Controller.changeZoomedDataForDetailChart(newZoomedSeriesData);
+                                vis.Controller.zoomedDataForDetailChart_Changed(newZoomedSeriesData);
 
                                 // change data for detailChart & redraw
                                 while (this.series.length > 0)
@@ -456,7 +464,7 @@ let DiracChart_Visualization = function(app) {
                                     });
 
                                     masterChart.series[0].setData(newTotalJobsPerHour);
-                                    vis.Controller.changeZoomedDataForMasterChart(newTotalJobsPerHour);
+                                    vis.Controller.zoomedDataForMasterChart_Changed(newTotalJobsPerHour);
 
                                     vis.View.setChartTitle(vis.Utils.msFormat(zoomedMinStartTime), vis.Utils.msFormat(zoomedMaxStartTime), newZoomedData.length);
                                     this.redraw();
@@ -464,19 +472,19 @@ let DiracChart_Visualization = function(app) {
                                     vis.View.setLegendSymbolSize(vis.Configuration.legendSymbolSize);
                                     this.hideLoading();
 
-                                    vis.Model.app.View.resetDataTable();
-                                    vis.Model.app.View.drawDataTable(newZoomedSeriesData);
+                                    vis.View.resetDataTable();
+                                    vis.View.drawDataTable(newZoomedSeriesData);
                                 } else {
                                     vis.View.setChartTitle(null, null, 0);
-                                    vis.Model.app.View.resetDataTable();
+                                    vis.View.resetDataTable();
                                     this.hideLoading();
                                 }
                             },
-                            redraw: function() {
+                            redraw: function () {
                                 const chart = this,
                                     each = Highcharts.each;
-                                each(chart.series, function(s, i) {
-                                    each(s.points, function(p, j) {
+                                each(chart.series, function (s, i) {
+                                    each(s.points, function (p, j) {
                                         if (p.graphic) {
                                             p.graphic.css({
                                                 'marker': {
@@ -521,8 +529,8 @@ let DiracChart_Visualization = function(app) {
                         },
                         labels: {
                             //formatter: function() {
-                                //if (this.value > 1000000) return this.value / 1000000 + "M"
-                                //return this.value / 1000 + "K"
+                            //if (this.value > 1000000) return this.value / 1000000 + "M"
+                            //return this.value / 1000 + "K"
                             //},
                             x: 5,
                             zIndex: 6
@@ -552,7 +560,7 @@ let DiracChart_Visualization = function(app) {
                         },
                     },
                     tooltip: {
-                        formatter: function() {
+                        formatter: function () {
                             const dataPoint = vis.Model.data.filter(obj => obj.job_id === this.point.job_id)[0];
                             return (
                                 "<b>CPU norm:</b> " + dataPoint.cpu_norm + "<br>" +
@@ -592,9 +600,9 @@ let DiracChart_Visualization = function(app) {
                             text: ':: Drag me'
                         },
                         zIndex: 20
-                            // labelFormatter: function () {
-                            //     return '<span style="color:' + this.color + ';">' + this.name + '</span>';
-                            // },
+                        // labelFormatter: function () {
+                        //     return '<span style="color:' + this.color + ';">' + this.name + '</span>';
+                        // },
                     },
                     exporting: {
                         enabled: true
@@ -616,177 +624,175 @@ let DiracChart_Visualization = function(app) {
                 vis.View.setLegendSymbolSize(vis.Configuration.legendSymbolSize);
             },
 
-            createMasterDetailChart: function() {
+            createMasterDetailChart: function () {
                 $('#masterdetail-container').html('<div id="detail-container"></div><div id="master-container"></div>');
                 let masterChart = Highcharts.chart('master-container', {
-                        chart: {
-                            reflow: false,
-                            borderWidth: 0,
-                            backgroundColor: null,
-                            marginLeft: 50,
-                            marginRight: 20,
-                            zoomType: 'x',
-                            events: {
-                                render: function() {
-                                    this.showResetZoom();
-                                },
-                                selection: function(event) { // listen to the selection event on the master chart to update the extremes of the detail chart
-                                    let extremesObject, min, max, newSeries;
-                                    const detailChart = vis.Model.detailChart,
-                                        xAxis = this.xAxis[0];
+                    chart: {
+                        reflow: false,
+                        borderWidth: 0,
+                        backgroundColor: null,
+                        marginLeft: 50,
+                        marginRight: 20,
+                        zoomType: 'x',
+                        events: {
+                            render: function () {
+                                this.showResetZoom();
+                            },
+                            selection: function (event) { // listen to the selection event on the master chart to update the extremes of the detail chart
+                                let extremesObject, min, max, newSeries;
+                                const detailChart = vis.Model.detailChart,
+                                    xAxis = this.xAxis[0];
 
-                                    if (!('resetSelection' in event)) {
-                                        extremesObject = event.xAxis[0];
-                                        min = extremesObject.min;
-                                        max = extremesObject.max;
-                                        newSeries = JSON.parse(JSON.stringify(vis.Model.zoomedDataForDetailChart.map(series => {
-                                            return {...series, data: series.data.filter((obj) => obj.start_time >= min && obj.start_time <= max) }
-                                        }).filter((series) => series.data.length > 0)));
-                                    } else {
-                                        extremesObject = event.target.axes[0];
-                                        min = vis.Model.zoomedDataForMasterChart[0][0];
-                                        max = vis.Model.zoomedDataForMasterChart[vis.Model.zoomedDataForMasterChart.length - 1][0];
-                                        newSeries = JSON.parse(JSON.stringify(vis.Model.dataForDetailChart));
-                                    }
-
-                                    vis.Controller.changeZoomedDataForDetailChart(newSeries);
-
-                                    detailChart.showLoading();
-
-                                    // change data for detailChart & redraw
-                                    while (detailChart.series.length > 0)
-                                        detailChart.series[0].remove(false);
-
-                                    newSeries.forEach(series => {
-                                        series['marker'] = { 'radius': vis.Model.markerSize };
-                                        detailChart.addSeries(series, false);
-                                    });
-                                    detailChart.redraw();
-                                    vis.View.setLegendSymbolSize(vis.Configuration.legendSymbolSize);
-
-                                    detailChart.hideLoading();
-
-                                    // move the plot bands to reflect the new detail span
-                                    xAxis.removePlotBand('mask-before');
-                                    xAxis.addPlotBand({
-                                        id: 'mask-before',
-                                        from: vis.Model.zoomedDataForMasterChart[0][0],
-                                        to: min,
-                                        color: 'rgba(0, 0, 0, 0.2)'
-                                    });
-
-                                    xAxis.removePlotBand('mask-after');
-                                    xAxis.addPlotBand({
-                                        id: 'mask-after',
-                                        from: max,
-                                        to: vis.Model.zoomedDataForMasterChart[vis.Model.zoomedDataForMasterChart.length - 1][0],
-                                        color: 'rgba(0, 0, 0, 0.2)'
-                                    });
-
-                                    xAxis.setExtremes(min, max);
-
-                                    // vis.Model.app.View.resetDataTable();
-                                    // is.Model.app.View.drawDataTable(dataForDetail.filter(obj => obj.start_time >= min && obj.start_time <= max));
-                                    vis.View.setChartTitle(vis.Utils.msFormat(min), vis.Utils.msFormat(max),
-                                        newSeries.reduce(function(sum, series) { return sum + series.data.length; }, 0));
-                                    vis.Model.app.View.resetDataTable();
-                                    vis.Model.app.View.drawDataTable(newSeries);
-
-                                    return false;
+                                if (!('resetSelection' in event)) {
+                                    extremesObject = event.xAxis[0];
+                                    min = extremesObject.min;
+                                    max = extremesObject.max;
+                                    newSeries = JSON.parse(JSON.stringify(vis.Model.zoomedDataForDetailChart.map(series => {
+                                        return { ...series, data: series.data.filter((obj) => obj.start_time >= min && obj.start_time <= max) }
+                                    }).filter((series) => series.data.length > 0)));
+                                } else {
+                                    extremesObject = event.target.axes[0];
+                                    min = vis.Model.zoomedDataForMasterChart[0][0];
+                                    max = vis.Model.zoomedDataForMasterChart[vis.Model.zoomedDataForMasterChart.length - 1][0];
+                                    newSeries = JSON.parse(JSON.stringify(vis.Model.dataForDetailChart));
                                 }
+
+                                vis.Controller.zoomedDataForDetailChart_Changed(newSeries);
+
+                                detailChart.showLoading();
+
+                                // change data for detailChart & redraw
+                                while (detailChart.series.length > 0)
+                                    detailChart.series[0].remove(false);
+
+                                newSeries.forEach(series => {
+                                    series['marker'] = { 'radius': vis.Model.markerSize };
+                                    detailChart.addSeries(series, false);
+                                });
+                                detailChart.redraw();
+                                vis.View.setLegendSymbolSize(vis.Configuration.legendSymbolSize);
+
+                                detailChart.hideLoading();
+
+                                // move the plot bands to reflect the new detail span
+                                xAxis.removePlotBand('mask-before');
+                                xAxis.addPlotBand({
+                                    id: 'mask-before',
+                                    from: vis.Model.zoomedDataForMasterChart[0][0],
+                                    to: min,
+                                    color: 'rgba(0, 0, 0, 0.2)'
+                                });
+
+                                xAxis.removePlotBand('mask-after');
+                                xAxis.addPlotBand({
+                                    id: 'mask-after',
+                                    from: max,
+                                    to: vis.Model.zoomedDataForMasterChart[vis.Model.zoomedDataForMasterChart.length - 1][0],
+                                    color: 'rgba(0, 0, 0, 0.2)'
+                                });
+
+                                xAxis.setExtremes(min, max);
+
+                                vis.View.setChartTitle(vis.Utils.msFormat(min), vis.Utils.msFormat(max),
+                                    newSeries.reduce(function (sum, series) { return sum + series.data.length; }, 0));
+                                vis.View.resetDataTable();
+                                vis.View.drawDataTable(newSeries);
+
+                                return false;
                             }
-                        },
-                        title: {
-                            text: "Total jobs per hour"
-                        },
-                        accessibility: {
-                            enabled: false
-                        },
-                        xAxis: {
-                            type: 'datetime',
-                            min: vis.Model.zoomedDataForMasterChart[0][0],
-                            max: vis.Model.zoomedDataForMasterChart[vis.Model.zoomedDataForMasterChart.length - 1][0],
-                            showLastTickLabel: true,
-                            startOnTick: true,
-                            endOnTick: true,
-                            minRange: 3600 * 1000, // 1 hour
-                            plotBands: [{
-                                id: 'mask-before',
-                                from: vis.Model.zoomedDataForMasterChart[0][0],
-                                to: vis.Model.zoomedDataForMasterChart[vis.Model.zoomedDataForMasterChart.length - 1][0],
-                                color: 'rgba(0, 0, 0, 0.2)'
-                            }],
-                            title: {
-                                text: null
-                            },
-                            events: {
-                                setExtremes: function(e) {
-                                    // console.log('e', e);
-                                    if (typeof e.min == 'undefined' && typeof e.max == 'undefined') {
-                                        // console.log('ZOOM OUT');
-                                    }
-                                }
-                            }
-                        },
-                        yAxis: {
-                            gridLineWidth: 0,
-                            labels: {
-                                enabled: false
-                            },
-                            title: {
-                                text: null
-                            },
-                            showFirstLabel: false
-                        },
-                        tooltip: {
-                            formatter: function() {
-                                return '<b>Time:</b>' + vis.Utils.msFormat(this.x) +
-                                    '<br><b>Jobs count:</b> ' + this.y;
-                            }
-                        },
-                        legend: {
-                            enabled: false
-                        },
-                        credits: {
-                            enabled: false
-                        },
-                        plotOptions: {
-                            series: {
-                                fillColor: {
-                                    linearGradient: [0, 0, 0, 70],
-                                    stops: [
-                                        [0, Highcharts.getOptions().colors[0]],
-                                        [1, 'rgba(255,255,255,0)']
-                                    ]
-                                },
-                                lineWidth: 1,
-                                marker: {
-                                    enabled: false
-                                },
-                                shadow: false,
-                                states: {
-                                    hover: {
-                                        lineWidth: 1
-                                    }
-                                },
-                                enableMouseTracking: true
-                            }
-                        },
-                        series: [{
-                            type: 'spline',
-                            name: 'Total jobs per hour',
-                            pointInterval: 3600 * 1000, // 1 час
-                            pointStart: vis.Model.zoomedDataForMasterChart[0][0],
-                            data: vis.Model.zoomedDataForMasterChart
-                        }],
-                        exporting: {
-                            enabled: false
-                        },
-                        boost: {
-                            useGPUTranslations: true,
-                            usePreAllocated: true,
                         }
                     },
+                    title: {
+                        text: "Total jobs per hour"
+                    },
+                    accessibility: {
+                        enabled: false
+                    },
+                    xAxis: {
+                        type: 'datetime',
+                        min: vis.Model.zoomedDataForMasterChart[0][0],
+                        max: vis.Model.zoomedDataForMasterChart[vis.Model.zoomedDataForMasterChart.length - 1][0],
+                        showLastTickLabel: true,
+                        startOnTick: true,
+                        endOnTick: true,
+                        minRange: 3600 * 1000, // 1 hour
+                        plotBands: [{
+                            id: 'mask-before',
+                            from: vis.Model.zoomedDataForMasterChart[0][0],
+                            to: vis.Model.zoomedDataForMasterChart[vis.Model.zoomedDataForMasterChart.length - 1][0],
+                            color: 'rgba(0, 0, 0, 0.2)'
+                        }],
+                        title: {
+                            text: null
+                        },
+                        events: {
+                            setExtremes: function (e) {
+                                // console.log('e', e);
+                                if (typeof e.min == 'undefined' && typeof e.max == 'undefined') {
+                                    // console.log('ZOOM OUT');
+                                }
+                            }
+                        }
+                    },
+                    yAxis: {
+                        gridLineWidth: 0,
+                        labels: {
+                            enabled: false
+                        },
+                        title: {
+                            text: null
+                        },
+                        showFirstLabel: false
+                    },
+                    tooltip: {
+                        formatter: function () {
+                            return '<b>Time:</b>' + vis.Utils.msFormat(this.x) +
+                                '<br><b>Jobs count:</b> ' + this.y;
+                        }
+                    },
+                    legend: {
+                        enabled: false
+                    },
+                    credits: {
+                        enabled: false
+                    },
+                    plotOptions: {
+                        series: {
+                            fillColor: {
+                                linearGradient: [0, 0, 0, 70],
+                                stops: [
+                                    [0, Highcharts.getOptions().colors[0]],
+                                    [1, 'rgba(255,255,255,0)']
+                                ]
+                            },
+                            lineWidth: 1,
+                            marker: {
+                                enabled: false
+                            },
+                            shadow: false,
+                            states: {
+                                hover: {
+                                    lineWidth: 1
+                                }
+                            },
+                            enableMouseTracking: true
+                        }
+                    },
+                    series: [{
+                        type: 'spline',
+                        name: 'Total jobs per hour',
+                        pointInterval: 3600 * 1000, // 1 час
+                        pointStart: vis.Model.zoomedDataForMasterChart[0][0],
+                        data: vis.Model.zoomedDataForMasterChart
+                    }],
+                    exporting: {
+                        enabled: false
+                    },
+                    boost: {
+                        useGPUTranslations: true,
+                        usePreAllocated: true,
+                    }
+                },
                     masterChart => {
                         vis.View.createDetailChart(masterChart);
                     }); // return chart instance
@@ -795,7 +801,7 @@ let DiracChart_Visualization = function(app) {
                 vis.Controller.setMasterChart(masterChart);
             },
 
-            createDurationChart: function() {
+            createDurationChart: function () {
                 console.log(vis.Model.dataForDurationChart);
                 let data = Object.keys(vis.Model.dataForDurationChart).map(groupName => ({
                     'name': groupName,
@@ -832,173 +838,86 @@ let DiracChart_Visualization = function(app) {
                     }
                 };
                 Plotly.newPlot('duration-container', traces, layout);
-
-                /*let durationChart = Highcharts.chart('duration-container', {
-                    chart: {
-                        type: 'spline'
-                    },
-                    title: {
-                        text: "Jobs' duration"
-                    },
-                    xAxis: {
-                        // categories: Object.keys(vis.Model.dataForDurationChart)
-                    },
-                    yAxis: {
-                        title: {
-                            text: 'Duration (WallTime)'
-                        },
-                        labels: {
-                            format: '{value}'
-                        }
-                    },
-                    tooltip: {
-                        // shared: true
-                        formatter: function () {
-                            console.log(this);
-                            // vis.Utils.secondsToDhms(walltime)
-                            return `<b>${this.point.series.name}</b><br>` +
-                                vis.Utils.secondsToDhms(this.y);
-                        }
-                    },
-                    plotOptions: {
-                        spline: {
-                            marker: {
-                                radius: 4,
-                                lineColor: '#666666',
-                                lineWidth: 1
-                            }
-                        }
-                    },
-                    series: Object.keys(vis.Model.dataForDurationChart).map(groupName => ({
-                        'name': groupName,
-                        'data': Object.keys(vis.Model.dataForDurationChart[groupName]).map(walltime => Number(walltime))
-                    }))
-                });*/
             },
 
-            // не используем
-            createDurationCountChart: function() {
-                let walltimes = Object.keys(vis.Model.dataForDurationChart).map(groupName => Object.keys(vis.Model.dataForDurationChart[groupName])).flat();
-                walltimes = walltimes.map(sec => vis.Utils.secondsToDhms(sec));
-                Highcharts.chart('durationCount-container', {
-                    chart: {
-                        type: 'column'
-                    },
-                    title: {
-                        text: 'Количество задач определенной продолжительности'
-                    },
-                    xAxis: {
-                        categories: walltimes
-                    },
-                    yAxis: {
-                        min: 0,
-                        title: {
-                            text: "Jobs count"
-                        },
-                        stackLabels: {
-                            enabled: true
-                        }
-                    },
-                    legend: {
-                        align: 'left',
-                        x: 70,
-                        verticalAlign: 'top',
-                        y: 70,
-                        floating: true,
-                        backgroundColor: Highcharts.defaultOptions.legend.backgroundColor || 'white',
-                        borderColor: '#CCC',
-                        borderWidth: 1,
-                        shadow: false
-                    },
-                    tooltip: {
-                        headerFormat: '<b>{series.name}</b><br/>'
-                    },
-                    plotOptions: {
-                        column: {
-                            stacking: 'normal',
-                            dataLabels: {
-                                enabled: true
-                            }
-                        }
-                    },
-                    series: vis.Model.dataForDurationCountChart
-                });
-            },
-
-            redrawAll: function() {
-                vis.Controller.reinitDataForDetailChart();
-                vis.Controller.reinitDataForDurationChart();
-                this.createMasterDetailChart();
-                this.createDurationChart();
-                //this.createDurationCountChart();
-            },
-
-            displayMarkerSize: function(markerSize_value) {
+            displayMarkerSize: function (markerSize_value) {
                 $("#marker_size_value").html(markerSize_value);
             },
 
-            redrawDetailChart: function(optionsObj) {
+            redrawDetailChart: function (optionsObj) {
                 const detailChart = vis.Model.detailChart;
                 detailChart.showLoading();
-
                 detailChart.series.map(series => series.update(optionsObj, false));
-
                 detailChart.redraw();
                 this.setLegendSymbolSize(vis.Configuration.legendSymbolSize);
                 detailChart.hideLoading();
             },
 
-            setChartTitle: function(periodStart, periodEnd, pointsCount) {
+            redrawAllCharts: function () {
+                vis.Controller.reinitDataForDetailChart();
+                vis.Controller.reinitDataForDurationChart();
+                this.createMasterDetailChart();
+                this.createDurationChart();
+            },
+
+            setChartTitle: function (periodStart, periodEnd, pointsCount) {
                 let detailChart = vis.Model.detailChart;
                 detailChart.setTitle({ text: periodStart + ' - ' + periodEnd }, { text: 'Count of points: <b>' + pointsCount + '</b>' }, false);
             },
 
-            setLegendSymbolSize: function(symbolSize) {
-                $(vis.Model.detailChart.series).each(function() {
+            setLegendSymbolSize: function (symbolSize) {
+                $(vis.Model.detailChart.series).each(function () {
                     this.legendItem.symbol.attr('width', symbolSize);
                     this.legendItem.symbol.attr('height', symbolSize);
                 });
             },
+
+            resetDataTable: function () {
+                if (vis.Model.datatable) {
+                    vis.Model.datatable.clear().draw();
+                }
+                $('#datatable_wrapper').hide();
+            },
         },
 
         this.Controller = {
-            initiateVis: function(data) {
+            initiateVis: function (data) {
                 vis.Model.initiateModel();
                 if (data) vis.Model.setData(data);
                 vis.View.initiateView();
             },
 
-            setColorBy: function(value) {
+            setColorBy: function (value) {
                 vis.Model.colorBy = value ? value : $("#select_colorBy").val();
             },
 
-            setMasterChart: function(masterChart) {
+            setMasterChart: function (masterChart) {
                 vis.Model.masterChart = masterChart;
             },
 
-            setDetailChart: function(detailChart) {
+            setDetailChart: function (detailChart) {
                 vis.Model.detailChart = detailChart;
             },
 
-            y_value_Changed: function(y_value) {
+            y_value_Changed: function (y_value) {
                 vis.Model.y_value = y_value;
                 if (vis.Model.zoomedDataForDetailChart) {
-                    vis.View.redrawAll();
-                    vis.Model.app.View.resetDataTable();
-                    vis.Model.app.View.drawDataTable(vis.Model.zoomedDataForDetailChart);
+                    vis.View.redrawAllCharts();
+                    vis.View.resetDataTable();
+                    vis.View.drawDataTable(vis.Model.zoomedDataForDetailChart);
                 }
             },
 
-            colorBy_Changed: function(colorBy_value) {
+            colorBy_Changed: function (colorBy_value) {
                 vis.Model.colorBy = colorBy_value;
                 if (vis.Model.zoomedDataForDetailChart) {
-                    vis.View.redrawAll();
-                    vis.Model.app.View.resetDataTable();
-                    vis.Model.app.View.drawDataTable(vis.Model.zoomedDataForDetailChart);
+                    vis.View.redrawAllCharts();
+                    vis.View.resetDataTable();
+                    vis.View.drawDataTable(vis.Model.zoomedDataForDetailChart);
                 }
             },
 
-            markerSize_Changed: function(markerSize_value) {
+            markerSize_Changed: function (markerSize_value) {
                 vis.Model.markerSize = markerSize_value;
                 vis.View.displayMarkerSize(markerSize_value);
                 if (vis.Model.zoomedDataForDetailChart)
@@ -1009,15 +928,19 @@ let DiracChart_Visualization = function(app) {
                     });
             },
 
-            changeZoomedDataForDetailChart: function(newData) {
+            dataTable_Changed: function (datatable) {
+                vis.Model.datatable = datatable;
+            },
+
+            zoomedDataForDetailChart_Changed: function (newData) {
                 vis.Model.zoomedDataForDetailChart = newData;
             },
 
-            changeZoomedDataForMasterChart: function(newData) {
+            zoomedDataForMasterChart_Changed: function (newData) {
                 vis.Model.zoomedDataForMasterChart = newData;
             },
 
-            reinitDataForDetailChart: function() {
+            reinitDataForDetailChart: function () {
                 vis.Model.dataForDetailChart = vis.Model.initDataForDetailChart(vis.Model.data);
                 let currentZoomedDataForDetailChart = JSON.parse(JSON.stringify(vis.Model.zoomedDataForDetailChart)),
                     currentDetailData = currentZoomedDataForDetailChart.map(series => series.data).reduce((accumulator, currentArray) => {
@@ -1026,11 +949,11 @@ let DiracChart_Visualization = function(app) {
                     currentJobIDs = currentDetailData.map(obj => obj.job_id);
 
                 vis.Model.zoomedDataForDetailChart = JSON.parse(JSON.stringify(vis.Model.dataForDetailChart.map(series => {
-                    return {...series, data: series.data.filter((obj) => currentJobIDs.includes(obj.job_id)) }
+                    return { ...series, data: series.data.filter((obj) => currentJobIDs.includes(obj.job_id)) }
                 })));
             },
 
-            reinitDataForDurationChart: function() {
+            reinitDataForDurationChart: function () {
                 vis.Model.dataForDurationChart = vis.Model.initDataForDurationChart(vis.Model.data);
                 //console.log(vis.Model.dataForDurationChart);
             }

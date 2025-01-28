@@ -23,6 +23,7 @@ def get_filters(request):
         "site": sorted(df['site'].unique().tolist()),
         "status": sorted(df['status'].unique().tolist()),
         "owner": sorted(df['owner'].unique().tolist()),
+        "job_group": sorted(df['job_group'].unique().tolist()),
     }
     print(filters)
     return JsonResponse({'filters': filters})

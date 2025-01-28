@@ -128,6 +128,29 @@
     box-shadow: 0 0 20px #0d6dfd;
 }
 
+.select2-selection__choice,
+.select2-selection__choice>button {
+    /* background-color: #6610f2 !important; */
+    background-color: teal !important;
+}
+
+.select2-selection__choice__display {
+    margin: 5px;
+}
+
+
+/* переносит слова в select2 */
+.select2-selection__rendered{
+    word-wrap: break-word !important;
+    text-overflow: inherit !important;
+    white-space: normal !important;
+}
+
+.noclick {
+    pointer-events: none;
+    cursor: default;
+}
+
 @keyframes animateC {
     0% {
         transform: rotate(0deg);
