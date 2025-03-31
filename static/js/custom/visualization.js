@@ -166,8 +166,8 @@ let DiracChart_Visualization = function (app) {
                     jobs = [];
 
                 allData.forEach(obj => {
-                    //var y = 'wall_time' in obj ? 'wall_time' : 'y';
-                    var y = 'real_wt';
+                    var y = 'wall_time' in obj ? 'wall_time' : 'y'; // wall_time - когда данные ещё не отрисованы, y - когда уже отрисованы, и мы делаем зум
+                    // var y = 'real_wt';
                     jobs.push([obj.start_time, Math.trunc(obj.start_time + obj[y] * 1000)])
                 });
 
@@ -400,7 +400,7 @@ let DiracChart_Visualization = function (app) {
                             render: function () {
                                 this.showResetZoom();
                             },
-                            selection: function (event) {
+                            selection: function (event) { // слушатель "зума"
                                 this.showLoading();
                                 const min_start_time = vis.Model.zoomedDataForMasterChart[0][0],
                                     max_start_time = vis.Model.zoomedDataForMasterChart[vis.Model.zoomedDataForMasterChart.length - 1][0];
