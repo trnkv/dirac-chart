@@ -45,9 +45,8 @@
     <script src="{% static 'js/select2.min.js' %}"></script>
     <!-- Custom styles -->
     <link href="/static/css/custom/app.css?v={{ randint }}" rel="stylesheet" />
-    <!-- Custom functions -->
+    <!-- Custom scripts -->
     <script src="/static/js/custom/app.js?v={{ randint }}"></script>
-    <script src="/static/js/custom/visualization.js?v={{ randint }}"></script>
 </head>
 
 <!--<body class="sidebar-mini layout-fixed bg-white" style="height: auto;">-->
@@ -70,7 +69,7 @@
                 </li>
                 <li class="nav-item">
                     <div class="input-group">
-                        <label class="input-group-text" for="select_marker_size">
+                        <label class="input-group-text" for="select_colorBy">
                             <span><i class="fa-solid fa-paintbrush"></i> Color by</span>
                         </label>
                         <select id="select_colorBy" class="form-control">
@@ -278,13 +277,6 @@
                         <div class="col-12">
                             <figure class="highcharts-figure"></figure>
                             <div id="duration-container" style="position: relative;"></div>
-                            </figure>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-12">
-                            <figure class="highcharts-figure"></figure>
-                            <div id="durationCount-container" style="position: relative;"></div>
                             </figure>
                         </div>
                     </div>

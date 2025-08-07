@@ -1,48 +1,93 @@
 var App = function () {
     var app = this;
 
-    this.StartApp = function () {
-        this.Controller.initiateApp();
-    };
-
+    // Configuration
     this.Configuration = {
         startTime: moment(new Date(2020, 0, 1)),
         datetime_format: 'YYYY-MM-DD HH:mm:ss',
+        markerSize: 1.0,
+        legendSymbolSize: 10,
+        useUTC: true
     };
 
     this.Utils = {
-        getDuration: function (time) {
-            var now = new Date().getTime();
-            var error_time = new Date(time);
-            return moment.duration(now - error_time).humanize();
-        },
-    };
+        secondsToDhms: function (seconds) {
+            if (seconds) {
+                seconds = Number(seconds);
+                const d = Math.floor(seconds / (3600 * 24));
+                const h = Math.floor(seconds % (3600 * 24) / 3600);
+                const m = Math.floor(seconds % 3600 / 60);
+                const s = Math.floor(seconds % 60);
 
+                const dDisplay = d > 0 ? d + (d == 1 ? " day, " : " days, ") : "";
+                const hDisplay = h > 0 ? h + (h == 1 ? " hour, " : " hours, ") : "";
+                const mDisplay = m > 0 ? m + (m == 1 ? " minute, " : " minutes, ") : "";
+                const sDisplay = s > 0 ? s + (s == 1 ? " second" : " seconds") : "";
+                return dDisplay + hDisplay + mDisplay + sDisplay;
+            }
+            return seconds;
+        },
+
+        msFormat: function (milliseconds) {
+            return Highcharts.dateFormat('%e %b %Y, %H:%M:%S', new Date(milliseconds));
+        }
+    }
+
+    // Model
     this.Model = {
+        // Application data
         base_data: null,
         data_filtered: null,
+        dataCSV: null,
         filters: null,
-        startTime: null,
-        endTime: null,
-        done_handler: null,
-        recent_actions: null,
-        visualization: null,
+        currentFilters: null,
+        countOfPoints: 0,
+        recent_actions: [],
+        colorBy: null,
+        y_value: null,
+
+        // Visualization data
+        visualization: {
+            detailChart: null,
+            masterChart: null,
+            datatable: null,
+            dataForDetailChart: null,
+            dataForMasterChart: null,
+            zoomedDataForDetailChart: null,
+            zoomedDataForMasterChart: null,
+            dataForDurationChart: null
+        },
 
         initiateModel: function () {
             this.startTime = app.Configuration.startTime.format(app.Configuration.datetime_format);
             this.endTime = moment().format(app.Configuration.datetime_format);
             this.recent_actions = [];
+            this.y_value = $("#select_y_value").val();
+            this.colorBy = $("#select_colorBy").val();
         },
 
         reset: function () {
             this.base_data = null;
             this.data_filtered = null;
+            this.dataCSV = null;
             this.filters = null;
-            this.startTime = null;
-            this.endTime = null;
-            this.done_handler = null;
+            this.currentFilters = null;
+            this.countOfPoints = 0;
             this.recent_actions = null;
-            this.visualization = null;
+            this.colorBy = null;
+            this.y_value = null;
+
+            // Reset visualization data
+            this.visualization = {
+                detailChart: null,
+                masterChart: null,
+                datatable: null,
+                dataForDetailChart: null,
+                dataForMasterChart: null,
+                zoomedDataForDetailChart: null,
+                zoomedDataForMasterChart: null,
+                dataForDurationChart: null
+            };
         },
 
         getFilters: function () {
@@ -51,11 +96,11 @@ var App = function () {
                 async: false,
             }).done(function (response) {
                 app.Model.filters = response["filters"];
-                app.Model.currentFilters = this.filters;
+                app.Model.currentFilters = app.Model.filters;
                 console.log("Model: SUCCESS - filters successfully loaded");
             }).fail(function (response) {
                 console.log("Model: ERROR - filter loading issue" + response);
-            })
+            });
         },
 
         parseDataCSV: function () {
@@ -65,28 +110,26 @@ var App = function () {
                 dynamicTyping: true,
                 fastMode: true,
             }).data;
+
             this.base_data.forEach(obj => {
-                // переводим в локальную и преобразовываем в миллисекунды (т.к. xAxis в master в датах умеет работать только с мс)
                 obj['start_time'] = new Date(obj['start_time']).getTime();
                 obj['x'] = obj['start_time'];
                 obj['real_wt'] = (Date.parse(obj.end_time) - obj.start_time) / 1000;
-                //obj['efficiency'] = obj.total_time / (Date.parse(obj.end_time) - obj.start_time) * 1000; 
                 obj['efficiency'] = obj.total_time / obj.wall_time;
-            })
+            });
+
             this.data_filtered = Object.assign([], this.base_data);
             this.countOfPoints = this.data_filtered.length;
         },
 
         getDataByFilters: function (done_handler, checkedFilters, startTime, endTime) {
             this.colorBy = $("#select_colorBy").val();
-            console.log(startTime);
-            console.log(endTime);
+
             $.ajax({
                 xhr: function () {
                     var xhr = new window.XMLHttpRequest();
                     xhr.addEventListener("progress", function (evt) {
                         if (evt.lengthComputable) {
-                            // var percentComplete = Math.round(evt.loaded / evt.total);
                             $("#spinner p").text(`${Math.round(evt.loaded * 9.54 * Math.pow(10, -7))} MB`);
                         }
                     }, false);
@@ -108,12 +151,12 @@ var App = function () {
         },
 
         getAllData: function (done_handler) {
+            this.colorBy = $("#select_colorBy").val();
             $.ajax({
                 xhr: function () {
                     var xhr = new window.XMLHttpRequest();
                     xhr.addEventListener("progress", function (evt) {
                         if (evt.lengthComputable) {
-                            // var percentComplete = Math.round(evt.loaded / evt.total);
                             $("#spinner p").text(`${Math.round(evt.loaded * 9.54 * Math.pow(10, -7))} MB`);
                         }
                     }, false);
@@ -131,22 +174,23 @@ var App = function () {
 
         processData: function () {
             app.Model.parseDataCSV();
-            //console.log(app.Model.data);
             app.Model.done_handler();
         },
 
         applyFilters: function (checked_filters) {
-            filters = {
+            var filters = {
                 'site': [],
                 'owner': [],
                 'status': [],
                 'job_group': []
             };
+
             checked_filters.forEach(element => {
-                category = element.split(':')[0];
-                value = element.split(':')[1];
+                var category = element.split(':')[0];
+                var value = element.split(':')[1];
                 filters[category].push(value);
             });
+
             app.Model.data_filtered = app.Model.base_data.filter(function (el) {
                 return filters['site'].includes(el.site) &&
                     filters['owner'].includes(el.owner) &&
@@ -157,10 +201,203 @@ var App = function () {
 
         addRecentAction: function (action_type, action_value) {
             app.Model.recent_actions.push({ 'action_type': action_type, 'action_value': action_value });
+        },
+
+        // Visualization model methods
+        initDataForDetailChart: function (inputData) {
+            let seriesData = [];
+            inputData.forEach((obj) => {
+                var to_push = {};
+
+                if (this.y_value === "diracWT") {
+                    to_push = {
+                        job_id: obj.job_id,
+                        x: obj.cpu_norm + Math.random() * 0.1 - 0.05,
+                        y: obj.wall_time,
+                        start_time: obj.start_time
+                    };
+                } else if (this.y_value === "realWT") {
+                    to_push = {
+                        job_id: obj.job_id,
+                        x: obj.cpu_norm + Math.random() * 0.1 - 0.05,
+                        y: obj.real_wt,
+                        start_time: obj.start_time
+                    };
+                } else {
+                    to_push = {
+                        job_id: obj.job_id,
+                        x: obj.cpu_norm + Math.random() * 0.1 - 0.05,
+                        y: obj.efficiency,
+                        start_time: obj.start_time
+                    };
+                }
+
+                for (var i = 0; i < seriesData.length; i++) {
+                    if (seriesData[i].name == obj[this.colorBy]) {
+                        seriesData[i].data.push(to_push);
+                        return;
+                    }
+                }
+
+                seriesData.push({
+                    name: obj[this.colorBy],
+                    data: [to_push],
+                });
+            });
+            return seriesData;
+        },
+
+        initDataForMasterChart: function (inputData) {
+            const start = Date.now();
+            let result = {},
+                allData = inputData.slice(),
+                jobs = [];
+
+            allData.forEach(obj => {
+                var y = 'wall_time' in obj ? 'wall_time' : 'y';
+                // var y = 'real_wt';
+                jobs.push([obj.start_time, Math.trunc(obj.start_time + obj[y] * 1000)]);
+            });
+
+            jobs.sort(function (a, b) { return a[0] - b[0] });
+
+            let running_at_time = {};
+            let stop_times = [];
+            let current = 0;
+
+            for (let i = 0; i < jobs.length; i++) {
+                const start = jobs[i][0];
+                const stop = jobs[i][1];
+
+                while ((stop_times.length !== 0) && (start > stop_times[0])) {
+                    current -= 1;
+                    running_at_time[stop_times[0]] = current;
+                    stop_times.shift();
+                }
+
+                current += 1;
+                running_at_time[start] = current;
+                stop_times.push(stop);
+                stop_times.sort(function (a, b) { return a - b });
+            }
+
+            for (let i = 0; i < stop_times.length; i++) {
+                const stop = stop_times[i];
+                current -= 1;
+                running_at_time[stop] = current;
+            }
+
+            result = Object.entries(running_at_time);
+            result = result.map(pair => [parseInt(pair[0]), pair[1]]);
+            result.sort(function (a, b) { return a[0] - b[0] });
+
+            if (result.length > 0) {
+                let current_hour_start = Math.floor(result[0][0] / 60 / 60 / 1000) * 60 * 60 * 1000,
+                    current_hour_end = current_hour_start + 60 * 60 * 1000,
+                    current_hour_max_value = 0,
+                    result_data = {};
+
+                for (let i = 0; i < result.length; i++) {
+                    if (result[i][0] < current_hour_end) {
+                        current_hour_max_value = Math.max(result[i][1], current_hour_max_value);
+                    } else {
+                        current_hour_start = Math.floor(result[i][0] / 60 / 60 / 1000) * 60 * 60 * 1000;
+                        current_hour_end = current_hour_start + 60 * 60 * 1000;
+                        current_hour_max_value = result[i][1];
+                    }
+                    result_data[current_hour_start] = current_hour_max_value;
+                }
+
+                result_data = Object.keys(result_data).map((key) => [Number(key), result_data[key]]);
+
+                //IGOR
+                //This code is supposed to add 0 values. Issue appears when we suddensly stop jobs and suddenly start jobs. In that case in master chart there will be a line not equal to 0 when it should be 0.
+                var min_time = result_data[0][0];
+                var max_time = result_data[result_data.length - 1][0];
+                result_data.unshift([min_time - 3600000, 0]);
+                result_data.push([max_time + 3600000, 0]);
+
+                var index = 1;
+                var lastTime = result_data[0][0];
+                while (index < result_data.length) {
+                    if (result_data[index][0] - 3600000 == lastTime) {
+                        lastTime = result_data[index][0];
+                        index += 1;
+                        continue;
+                    }
+                    if (result_data[index][0] - 3600000 > lastTime) {
+                        result_data.splice(index, 0, [lastTime + 3600000, 0]);
+                        lastTime = lastTime + 3600000;
+                        index += 1;
+                        if (result_data[index][0] - 3600000 != lastTime) {
+                            result_data.splice(index, 0, [result_data[index][0] - 3600000, 0]);
+                            lastTime = result_data[index][0] - 3600000;
+                            index += 1;
+                        }
+                        continue;
+                    }
+                }
+
+                const end = Date.now();
+                console.log(`Time to initDataForMasterChart: ${end - start} ms`);
+                //IGOR
+                return result_data;
+            }
+            return result;
+        },
+
+        initDataForDurationChart: function (inputData) {
+            let groupMap = {},
+                groupBy = inputData.every(obj => 'name' in obj) ? 'name' : this.colorBy,
+                result = {};
+
+            // Grouping objects by colorBy
+            inputData.forEach(obj => {
+                const groupName = obj[groupBy];
+                if (groupName !== undefined) {
+                    if (!groupMap[groupName]) {
+                        groupMap[groupName] = [];
+                    }
+                    groupMap[groupName].push(obj);
+                }
+            });
+
+            for (const groupName in groupMap) {
+                if (!result[groupName]) {
+                    result[groupName] = [];
+                };
+                groupMap[groupName].forEach(obj => {
+                    let duration;
+                    if ('y' in obj)
+                        duration = obj.y;
+                    else if (this.y_value === "diracWT") {
+                        duration = obj.wall_time;
+                    } else if (this.y_value === "realWT") {
+                        duration = Date.parse(obj.end_time) - obj.start_time;
+                    } else {
+                        duration = (Date.parse(obj.end_time) - obj.start_time) / obj.cpu_time;
+                    }
+                    if (duration !== undefined) {
+                        result[groupName].push(duration);
+                    }
+                });
+            }
+            return result;
+        },
+
+        setVisualizationData: function (data) {
+            this.data_filtered = data;
+            this.visualization.dataForDetailChart = this.initDataForDetailChart(data);
+            this.visualization.dataForMasterChart = this.initDataForMasterChart(data);
+            this.visualization.zoomedDataForDetailChart = JSON.parse(JSON.stringify(this.visualization.dataForDetailChart));
+            this.visualization.zoomedDataForMasterChart = JSON.parse(JSON.stringify(this.visualization.dataForMasterChart));
+            this.visualization.dataForDurationChart = this.initDataForDurationChart(data);
         }
     };
 
+    // View
     this.View = {
+        // Application view methods
         createDateRangePicker: function () {
             var start = moment(new Date(2020, 0, 1));
             var end = moment();
@@ -297,11 +534,10 @@ var App = function () {
                     return {
                         id: term,
                         text: term,
-                        newTag: true // add additional parameters
+                        newTag: true
                     }
                 }
             });
-
         },
 
         drawFilter: function (selector, value, text) {
@@ -318,15 +554,15 @@ var App = function () {
 
         drawFilters: function (filters) {
             app.View.hidePreloader();
-            for (category in filters) {
+            for (var category in filters) {
                 if (category === "job_group") {
-                    for (element in filters['job_group']) {
+                    for (var element in filters['job_group']) {
                         $("#job_groups").append(`<option value="job_group:${filters['job_group'][element]}">${filters['job_group'][element]}</option>`);
                     }
                     $("#job_groups").val(filters['job_group'].map(g => "job_group:" + g)).trigger('change');
                 } else {
-                    let id_name = "#" + category + "-selector";
-                    for (element in filters[category]) {
+                    var id_name = "#" + category + "-selector";
+                    for (var element in filters[category]) {
                         var value = category + ":" + filters[category][element];
                         var caption = filters[category][element];
                         this.drawFilter(id_name, value, caption);
@@ -343,7 +579,7 @@ var App = function () {
         getCheckedFilters: function () {
             var checkedFilters = [];
             $("input[type=checkbox]:checked").each(function () {
-                checkedFilters.push($(this).attr('id'))
+                checkedFilters.push($(this).attr('id'));
             });
             checkedFilters = checkedFilters.concat($("#job_groups").val());
             console.log("Checked filters: ", checkedFilters);
@@ -352,23 +588,21 @@ var App = function () {
 
         leaveOnlyCheckedFilters: function () {
             $("input[type=checkbox]:not(:checked)").parent().parent().parent().remove();
-            app.View.deleteNotSelectedJobGroups();
+            this.deleteNotSelectedJobGroups();
         },
 
         redrawJobGroupSelector: function () {
             const newJobGroups = [...new Set(app.Model.data_filtered.map(item => item.job_group))];
             $("#job_groups").val(newJobGroups.map(g => "job_group:" + g)).trigger('change');
-            app.View.deleteNotSelectedJobGroups();
+            this.deleteNotSelectedJobGroups();
         },
 
         deleteNotSelectedJobGroups: function () {
-            // оставить только выбранные группы
             $('#job_groups option').each(function () {
                 if (!$(this).is(':selected')) {
-                    $(this).remove(); // Удаляем опцию, если она не выбрана
+                    $(this).remove();
                 }
             });
-            // Обновляем Select2 после изменения
             $('#job_groups').trigger('change.select2');
         },
 
@@ -387,6 +621,7 @@ var App = function () {
         reset: function () {
             this.resetFilters();
             $('#masterdetail-container').html('');
+            $('#duration-container').html('');
             $('#li_recent_actions').find(".dropdown-menu").html('\
                 <span class="dropdown-item dropdown-header">Recent actions <i class="fa-solid fa-arrow-down-long"></i></span>\
                 <div class="dropdown-divider"></div>');
@@ -403,21 +638,536 @@ var App = function () {
             var actions_number_increased = parseInt($("#li_recent_actions").find(".badge").text()) + 1;
             $("#li_recent_actions").find(".badge").text(actions_number_increased);
             $("#li_recent_actions").find(".badge").css('display', 'block');
-        }
-    }
+        },
 
+        // Visualization view methods
+        initiateVisualizationView: function () {
+            Highcharts.setOptions({
+                time: {
+                    useUTC: app.Configuration.useUTC,
+                }
+            });
+
+            $('#masterdetail-container').html('<div id="detail-container"></div><div id="master-container"></div>');
+            $('#select_marker_size').val(app.Configuration.markerSize);
+            this.displayMarkerSize(app.Configuration.markerSize);
+
+            $("#select_marker_size").on('input', function () {
+                app.View.displayMarkerSize((Number($(this).val())).toFixed(1));
+            });
+
+            $("#select_marker_size").on('change', function () {
+                app.Controller.recordRecentAction($(this));
+                app.Controller.markerSizeChanged(Number($(this).val()));
+            });
+
+            app.Controller.setColorBy(app.Configuration.colorBy);
+
+            $("#select_y_value").on('change', function () {
+                app.Controller.recordRecentAction($(this));
+                app.Controller.yValueChanged($(this).val());
+            });
+
+            $("#select_colorBy").on('change', function () {
+                app.Controller.recordRecentAction($(this));
+                app.Controller.colorByChanged($(this).val());
+            });
+
+            var datatable = new DataTable('#datatable', {
+                columns: [
+                    { 'data': 'data', 'title': $("#select_colorBy").val() },
+                    { 'data': 'pointsCount', 'title': 'Count of points' },
+                ],
+                autowidth: false,
+                paging: true,
+                lengthChange: true,
+                searching: true,
+                ordering: true,
+                order: [[1, "desc"]],
+                info: true,
+                responsive: true,
+                retrieve: true,
+                dom: 'Blfrtip',
+                buttons: [
+                    { extend: 'csv', className: '' },
+                    { extend: 'excel', className: '' },
+                    { extend: 'pdf', className: '' },
+                    { extend: 'print', className: '' }
+                ],
+            });
+
+            app.Controller.dataTableChanged(datatable);
+            $('#datatable_wrapper').hide();
+        },
+
+        drawVisualization: function () {
+            this.createMasterDetailChart();
+            this.createDurationChart();
+            this.resetDataTable();
+            this.drawDataTable(app.Model.visualization.zoomedDataForDetailChart);
+            $('#master-container').css({
+                'top': app.Model.visualization.detailChart.chartHeight + "px"
+            });
+        },
+
+        drawDataTable: function (data) {
+            console.log('data for DataTable: ', data);
+            this.resetDataTable();
+            var dataForDataTable = [],
+                key = 'name';
+            var categories = Array.from(new Set(data.map(obj => obj[key])));
+
+            for (let i = 0; i < categories.length; i++) {
+                var category = categories[i],
+                    pointsCount = data.find(obj => {
+                        return obj.name === category
+                    }).data.length;
+                dataForDataTable.push({ 'data': category, 'pointsCount': pointsCount });
+            };
+
+            app.Model.visualization.datatable.rows.add(dataForDataTable);
+            $(app.Model.visualization.datatable.column(0).header()).text(app.Model.colorBy);
+            app.Model.visualization.datatable.columns.adjust().draw();
+            $('#datatable_wrapper').show();
+        },
+
+        createDetailChart: function (masterChart) {
+            const dataForDetail = app.Model.visualization.zoomedDataForDetailChart.map(series => series.data).reduce((accumulator, currentArray) => {
+                return accumulator.concat(currentArray);
+            }, []);
+
+            let detailChart = Highcharts.chart('detail-container', {
+                chart: {
+                    marginBottom: 120,
+                    marginLeft: 50,
+                    marginRight: 20,
+                    type: "scatter",
+                    zoomType: "xy",
+                    height: '50%',
+                    zooming: {
+                        resetButton: {
+                            theme: {
+                                fill: 'white',
+                                stroke: 'silver',
+                                states: {
+                                    hover: {
+                                        fill: '#41739D',
+                                        style: {
+                                            color: 'white'
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    events: {
+                        render: function () {
+                            this.showResetZoom();
+                        },
+                        selection: function (event) {
+                            this.showLoading();
+                            let currentZoomedDetailData_Series, currentZoomedMasterData;
+                            if (!('resetSelection' in event)) {// проверяем, зум сброшен или нет
+                                let minX = event.xAxis[0].min,
+                                    maxX = event.xAxis[0].max,
+                                    minY = event.yAxis[0].min,
+                                    maxY = event.yAxis[0].max;
+                                currentZoomedDetailData_Series = JSON.parse(JSON.stringify(app.Model.visualization.zoomedDataForDetailChart.map(series => {
+                                    return {
+                                        ...series,
+                                        data: series.data.filter((obj) =>
+                                            obj.x >= minX &&
+                                            obj.x <= maxX &&
+                                            obj.y >= minY &&
+                                            obj.y <= maxY
+                                        )
+                                    }
+                                })));
+                                const allObjects = currentZoomedDetailData_Series.flatMap(group => group.data);
+                                let minStartTime = Math.min(...allObjects.map(obj => obj.start_time));
+                                const minDate = new Date(minStartTime);
+                                minStartTime = new Date(minDate).setUTCHours(
+                                    new Date(minDate).getUTCHours(), 0, 0, 0
+                                );
+                                let maxStartTime = Math.max(...allObjects.map(obj => obj.start_time));
+                                const maxDate = new Date(maxStartTime);
+                                maxStartTime = new Date(maxDate).setUTCHours(
+                                    new Date(maxDate).getUTCHours(), 0, 0, 0
+                                );
+                                if (minStartTime === maxStartTime) maxStartTime = new Date(minStartTime + 3600000).getTime(); // +1 hour
+                                currentZoomedMasterData = app.Model.visualization.zoomedDataForMasterChart.filter((pair) =>
+                                    pair[0] >= minStartTime &&
+                                    pair[0] <= maxStartTime
+                                )
+                            } else { // если зум сброшен
+                                currentZoomedDetailData_Series = JSON.parse(JSON.stringify(app.Model.visualization.dataForDetailChart));
+                                currentZoomedMasterData = app.Model.visualization.dataForMasterChart;
+                            }
+                            app.Controller.saveZoomedDataForDetailChart(currentZoomedDetailData_Series);
+                            app.Controller.saveZoomedDataForMasterChart(currentZoomedMasterData);
+                            app.Controller.onZoom();
+                            this.hideLoading();
+                        },
+                        redraw: function () {
+                            const chart = this,
+                                each = Highcharts.each;
+                            each(chart.series, function (s, i) {
+                                each(s.points, function (p, j) {
+                                    if (p.graphic) {
+                                        p.graphic.css({
+                                            'marker': {
+                                                'raduis': app.Configuration.markerSize
+                                            }
+                                        })
+                                    }
+                                })
+                            })
+                        }
+                    }
+                },
+                credits: {
+                    enabled: false
+                },
+                title: {
+                    text: app.Utils.msFormat(dataForDetail[0]['start_time']) + ' - ' + app.Utils.msFormat(dataForDetail[dataForDetail.length - 1]['start_time']),
+                    align: 'left'
+                },
+                subtitle: {
+                    text: `Count of points: <b>${dataForDetail.length}</b>`,
+                    align: 'center',
+                    style: {
+                        fontWeight: 'bold',
+                        fontSize: '1em'
+                    }
+                },
+                xAxis: {
+                    min: 0,
+                    title: {
+                        text: "DB12 value",
+                    },
+                    labels: {
+                        format: "{value}",
+                        zIndex: 6
+                    },
+                },
+                yAxis: {
+                    min: 0,
+                    title: {
+                        text: $("#select_y_value option:selected").text() + " (secs)",
+                    },
+                    labels: {
+                        x: 5,
+                        zIndex: 6
+                    },
+                },
+                plotOptions: {
+                    scatter: {
+                        marker: {
+                            radius: app.Configuration.markerSize,
+                            symbol: "circle",
+                            states: {
+                                hover: {
+                                    enabled: true,
+                                    lineColor: "rgb(100,100,100)",
+                                },
+                            },
+                        },
+                        states: {
+                            inactive: {
+                                opacity: 1
+                            }
+                        },
+                    },
+                    series: {
+                        turboThreshold: 0,
+                    },
+                },
+                tooltip: {
+                    formatter: function () {
+                        const dataPoint = app.Model.data_filtered.filter(obj => obj.job_id === this.point.job_id)[0];
+                        return (
+                            "<b>CPU norm:</b> " + dataPoint.cpu_norm + "<br>" +
+                            "<b>Wall Time:</b> " + app.Utils.secondsToDhms(dataPoint.wall_time) + "<br>" +
+                            "<b>Start Time:</b> " + app.Utils.msFormat(dataPoint.start_time) + "<br>" +
+                            "<b>End Time:</b> " + app.Utils.msFormat(dataPoint.end_time) + "<br>" +
+                            "<b>Site:</b> " + dataPoint.site + "<br>" +
+                            "<b>Owner:</b> " + dataPoint.owner + "<br>" +
+                            "<b>Job ID:</b> " + dataPoint.job_id + "<br>" +
+                            "<b>Job Name:</b> " + dataPoint.job_name + "<br>" +
+                            "<b>Job Group:</b> " + dataPoint.job_group + "<br>" +
+                            "<b>Hostname:</b> " + dataPoint.hostname + "<br>" +
+                            "<b>CPU model:</b> " + dataPoint.cpu_model + "<br>" +
+                            "<b>Memory:</b> " + dataPoint.memory + "<br>" +
+                            "<b>Memory Used:</b> " + dataPoint.memory_used + "<br>" +
+                            "<b>Status:</b> " + dataPoint.status
+                        );
+                    },
+                },
+                series: app.Model.visualization.zoomedDataForDetailChart,
+                legend: {
+                    backgroundColor: "rgba(255, 255, 255, 0.5)",
+                    layout: 'vertical',
+                    align: 'left',
+                    verticalAlign: 'top',
+                    x: 50,
+                    y: 60,
+                    borderWidth: 1,
+                    borderRadius: 5,
+                    maxHeight: 200,
+                    floating: true,
+                    draggable: true,
+                    title: {
+                        text: ':: Drag me'
+                    },
+                    zIndex: 20
+                },
+                exporting: {
+                    enabled: true,
+                    sourceWidth: 1920,
+                    sourceHeight: 1080,
+                    // scale: 2 (default)
+                    // chartOptions: {
+                    //     subtitle: null
+                    // }
+                },
+                boost: {
+                    useGPUTranslations: true,
+                    usePreAllocated: true,
+                }
+            });
+
+            app.Controller.setDetailChart(detailChart);
+            // this.setLegendSymbolSize(app.Configuration.legendSymbolSize);
+        },
+
+        createMasterDetailChart: function () {
+            $('#masterdetail-container').html('<div id="detail-container"></div><div id="master-container"></div>');
+
+            let masterChart = Highcharts.chart('master-container', {
+                chart: {
+                    reflow: false,
+                    borderWidth: 0,
+                    backgroundColor: null,
+                    marginLeft: 50,
+                    marginRight: 20,
+                    zoomType: 'x',
+                    events: {
+                        render: function () {
+                            this.showResetZoom();
+                        },
+                        selection: function (event) {// listen to the selection event on the master chart to update the extremes of the detail chart
+                            let minStartTime, maxStartTime, currentZoomedDetailData_Series, currentZoomedMasterData;
+
+                            if (!('resetSelection' in event)) {
+                                minStartTime = event.xAxis[0].min;
+                                maxStartTime = event.xAxis[0].max;
+                                currentZoomedDetailData_Series = JSON.parse(JSON.stringify(app.Model.visualization.zoomedDataForDetailChart.map(series => {
+                                    return { ...series, data: series.data.filter((obj) => obj.start_time >= minStartTime && obj.start_time <= maxStartTime) }
+                                }).filter((series) => series.data.length > 0)));
+                                currentZoomedMasterData = app.Model.visualization.zoomedDataForMasterChart.filter((pair) =>
+                                    pair[0] >= minStartTime &&
+                                    pair[0] <= maxStartTime
+                                )
+                            } else {
+                                currentZoomedDetailData_Series = JSON.parse(JSON.stringify(app.Model.visualization.dataForDetailChart));
+                                currentZoomedMasterData = app.Model.visualization.dataForMasterChart;
+                            }
+
+                            app.Controller.saveZoomedDataForDetailChart(currentZoomedDetailData_Series);
+                            app.Controller.saveZoomedDataForMasterChart(currentZoomedMasterData);
+
+                            app.Controller.onZoom();
+                        }
+                    }
+                },
+                title: {
+                    text: "Total jobs per hour"
+                },
+                accessibility: {
+                    enabled: false
+                },
+                xAxis: {
+                    type: 'datetime',
+                    min: app.Model.visualization.zoomedDataForMasterChart[0][0],
+                    max: app.Model.visualization.zoomedDataForMasterChart[app.Model.visualization.zoomedDataForMasterChart.length - 1][0],
+                    showLastTickLabel: true,
+                    startOnTick: true,
+                    endOnTick: true,
+                    minRange: 3600 * 1000,
+                    plotBands: [{
+                        id: 'mask-before',
+                        from: app.Model.visualization.zoomedDataForMasterChart[0][0],
+                        to: app.Model.visualization.zoomedDataForMasterChart[app.Model.visualization.zoomedDataForMasterChart.length - 1][0],
+                        color: 'rgba(0, 0, 0, 0.2)'
+                    }],
+                    title: {
+                        text: null
+                    },
+                    events: {
+                        setExtremes: function (e) {
+                            if (typeof e.min == 'undefined' && typeof e.max == 'undefined') {
+                                // Zoom out
+                            }
+                        }
+                    }
+                },
+                yAxis: {
+                    gridLineWidth: 0,
+                    labels: {
+                        enabled: false
+                    },
+                    title: {
+                        text: null
+                    },
+                    showFirstLabel: false
+                },
+                tooltip: {
+                    formatter: function () {
+                        return '<b>Time:</b>' + app.Utils.msFormat(this.x) +
+                            '<br><b>Jobs count:</b> ' + this.y;
+                    }
+                },
+                legend: {
+                    enabled: false
+                },
+                credits: {
+                    enabled: false
+                },
+                plotOptions: {
+                    series: {
+                        fillColor: {
+                            linearGradient: [0, 0, 0, 70],
+                            stops: [
+                                [0, Highcharts.getOptions().colors[0]],
+                                [1, 'rgba(255,255,255,0)']
+                            ]
+                        },
+                        lineWidth: 1,
+                        marker: {
+                            enabled: false
+                        },
+                        shadow: false,
+                        states: {
+                            hover: {
+                                lineWidth: 1
+                            }
+                        },
+                        enableMouseTracking: true
+                    }
+                },
+                series: [{
+                    type: 'spline',
+                    name: 'Total jobs per hour',
+                    pointInterval: 3600 * 1000,
+                    pointStart: app.Model.visualization.zoomedDataForMasterChart[0][0],
+                    data: app.Model.visualization.zoomedDataForMasterChart
+                }],
+                exporting: {
+                    enabled: false
+                },
+                boost: {
+                    useGPUTranslations: true,
+                    usePreAllocated: true,
+                }
+            }, masterChart => {
+                app.View.createDetailChart(masterChart);
+            });
+
+            app.Controller.setMasterChart(masterChart);
+        },
+
+        createDurationChart: function () {
+            console.log(app.Model.visualization.dataForDurationChart);
+            let data = Object.keys(app.Model.visualization.dataForDurationChart).map(groupName => ({
+                'name': groupName,
+                'data': app.Model.visualization.dataForDurationChart[groupName]
+            }));
+
+            console.log(data);
+            let traces = [];
+            data.forEach(obj => {
+                traces.push({
+                    'x': obj['data'],
+                    'type': 'histogram',
+                    'nbinsx': 100,
+                    'name': obj['name'],
+                    'hoverinfo': 'all',
+                    'texttemplate': " "
+                })
+            });
+
+            var layout = {
+                barmode: "stack",
+                title: "Jobs' duration",
+                xaxis: {
+                    title: {
+                        text: 'Duration (WallTime in seconds)',
+                    }
+                },
+                yaxis: {
+                    title: {
+                        text: 'Count of jobs',
+                    }
+                }
+            };
+
+            Plotly.newPlot('duration-container', traces, layout);
+        },
+
+        displayMarkerSize: function (markerSize_value) {
+            $("#marker_size_value").html(markerSize_value);
+        },
+
+        redrawDetailChart: function (optionsObj) {
+            const detailChart = app.Model.visualization.detailChart;
+            detailChart.showLoading();
+            detailChart.series.map(series => series.update(optionsObj, false));
+            detailChart.redraw();
+            // this.setLegendSymbolSize(app.Configuration.legendSymbolSize);
+            detailChart.hideLoading();
+        },
+
+        redrawAllCharts: function () {
+            app.Controller.reinitDataForDetailChart();
+            app.Controller.reinitDataForDurationChart();
+            this.createMasterDetailChart();
+            this.createDurationChart();
+        },
+
+        setChartTitle: function (periodStart, periodEnd, pointsCount) {
+            let detailChart = app.Model.visualization.detailChart;
+            detailChart.setTitle({ text: periodStart + ' - ' + periodEnd }, { text: 'Count of points: <b>' + pointsCount + '</b>' }, false);
+        },
+
+        setLegendSymbolSize: function (symbolSize) {
+            $(app.Model.visualization.detailChart.series).each(function () {
+                this.legendItem.symbol.attr('width', symbolSize);
+                this.legendItem.symbol.attr('height', symbolSize);
+            });
+        },
+
+        resetDataTable: function () {
+            if (app.Model.visualization.datatable) {
+                app.Model.visualization.datatable.clear().draw();
+            }
+            $('#datatable_wrapper').hide();
+        }
+    };
+
+    // Controller
     this.Controller = {
         initiateApp: function () {
             app.Model.initiateModel();
             app.View.initiateView();
+            app.View.showPreloader();
             app.Model.getFilters();
             app.View.drawFilters(app.Model.filters);
-            this.createVisualization();
+            this.initiateVisualization();
+            app.View.hidePreloader();
         },
 
-        createVisualization: function () {
-            app.Model.visualization = new DiracChart_Visualization(app);
-            app.Model.visualization.StartVis();
+        initiateVisualization: function () {
+            app.View.initiateVisualizationView();
         },
 
         loadAllData: function () {
@@ -430,14 +1180,14 @@ var App = function () {
         loadDataByFilters: function () {
             app.View.leaveOnlyCheckedFilters();
             let checkedFilters = app.View.getCheckedFilters();
-            start_time = app.View.start_time;
-            end_time = app.View.end_time;
+            let start_time = app.View.start_time;
+            let end_time = app.View.end_time;
             app.View.showPreloader();
             app.Model.getDataByFilters(this.dataLoaded, checkedFilters, start_time, end_time);
         },
 
         dataLoaded: function () {
-            app.Model.visualization.Model.setData(app.Model.data_filtered);
+            app.Model.setVisualizationData(app.Model.data_filtered);
             app.View.redrawJobGroupSelector();
             app.Controller.callDrawer();
             app.View.hidePreloader();
@@ -446,24 +1196,18 @@ var App = function () {
         callDrawer: function () {
             const data = app.Model.data_filtered;
             if (data.length > 0) {
-                app.Model.visualization.View.drawChart();
+                app.View.drawVisualization();
             } else {
                 $('#masterdetail-container').html('<h4 class="text-primary">There is no data on this request</h4>\
                 <p>Change the request parameters and try again</p>');
             }
         },
 
-        reset: function () {
-            app.Model.reset();
-            app.View.reset();
-            app.Controller.initiateApp();
-        },
-
         filtersChanged: function () {
             if (app.Model.base_data) {
                 let checkedFilters = app.View.getCheckedFilters();
                 app.Model.applyFilters(checkedFilters);
-                app.Model.visualization.Model.setData(app.Model.data_filtered);
+                app.Model.setVisualizationData(app.Model.data_filtered);
                 app.Controller.callDrawer();
             }
         },
@@ -472,7 +1216,6 @@ var App = function () {
             var action_type = new Date().getHours() + ":" + new Date().getMinutes() + ":" + new Date().getSeconds() + " | ",
                 action_value = "";
             console.log(triggered_element.attr('id'));
-
 
             switch (triggered_element.attr('id')) {
                 case "reportrange":
@@ -534,5 +1277,159 @@ var App = function () {
             app.Model.addRecentAction(action_type, action_value);
             app.View.drawRecentActions();
         },
-    }
-}
+
+        // Visualization controller methods
+        setMasterChart: function (masterChart) {
+            app.Model.visualization.masterChart = masterChart;
+        },
+
+        setDetailChart: function (detailChart) {
+            app.Model.visualization.detailChart = detailChart;
+        },
+
+        setColorBy: function (value) {
+            app.Model.colorBy = value ? value : $("#select_colorBy").val();
+        },
+
+        yValueChanged: function (y_value) {
+            app.Model.y_value = y_value;
+            if (app.Model.visualization.zoomedDataForDetailChart) {
+                app.View.redrawAllCharts();
+                app.View.resetDataTable();
+                app.View.drawDataTable(app.Model.visualization.zoomedDataForDetailChart);
+            }
+        },
+
+        colorByChanged: function (colorBy_value) {
+            app.Model.colorBy = colorBy_value;
+            if (app.Model.visualization.zoomedDataForDetailChart) {
+                app.View.redrawAllCharts();
+                app.View.resetDataTable();
+                app.View.drawDataTable(app.Model.visualization.zoomedDataForDetailChart);
+            }
+        },
+
+        markerSizeChanged: function (markerSize_value) {
+            app.Configuration.markerSize = markerSize_value;
+            app.View.displayMarkerSize(markerSize_value);
+            if (app.Model.visualization.zoomedDataForDetailChart)
+                app.View.redrawDetailChart({
+                    marker: {
+                        radius: app.Configuration.markerSize
+                    }
+                });
+        },
+
+        dataTableChanged: function (datatable) {
+            app.Model.visualization.datatable = datatable;
+        },
+
+        saveZoomedDataForDetailChart: function (newData) {
+            app.Model.visualization.zoomedDataForDetailChart = newData;
+        },
+
+        saveZoomedDataForMasterChart: function (newData) {
+            app.Model.visualization.zoomedDataForMasterChart = newData;
+        },
+
+        onZoom: function () {
+            let detailChart = app.Model.visualization.detailChart,
+                masterChart = app.Model.visualization.masterChart;
+
+            // get limits on masterChart
+            const minStartTime = app.Model.visualization.zoomedDataForMasterChart[0][0],
+                maxStartTime = app.Model.visualization.zoomedDataForMasterChart[app.Model.visualization.zoomedDataForMasterChart.length - 1][0];
+
+            // change data for detailChart & redraw
+            while (detailChart.series.length > 0)
+                detailChart.series[0].remove(false);
+            app.Model.visualization.zoomedDataForDetailChart.forEach(series => {
+                series['marker'] = { 'radius': app.Configuration.markerSize };
+                detailChart.addSeries(series, false);
+            });
+
+            // reinit dataForMasterChart
+            const zoomedDataForDetailChart_Values = app.Model.visualization.zoomedDataForDetailChart.map(series => series.data).reduce((accumulator, currentArray) => {
+                return accumulator.concat(currentArray);
+            }, []);
+            const newTotalJobsPerHour = app.Model.initDataForMasterChart(zoomedDataForDetailChart_Values);
+
+            if (newTotalJobsPerHour.length > 0) {
+                const zoomedMinStartTime = newTotalJobsPerHour[0][0],
+                    zoomedMaxStartTime = newTotalJobsPerHour[newTotalJobsPerHour.length - 1][0];
+
+                // move the plot bands to reflect the new detail span
+                masterChart.axes[0].removePlotBand('mask-before');
+                masterChart.axes[0].addPlotBand({
+                    id: 'mask-before',
+                    from: minStartTime,
+                    to: zoomedMinStartTime,
+                    color: 'rgba(0, 0, 0, 0.2)'
+                });
+
+                masterChart.axes[0].removePlotBand('mask-after');
+                masterChart.axes[0].addPlotBand({
+                    id: 'mask-after',
+                    from: zoomedMaxStartTime,
+                    to: maxStartTime,
+                    color: 'rgba(0, 0, 0, 0.2)'
+                });
+
+                // redraw masterChart
+                masterChart.series[0].setData(newTotalJobsPerHour);
+                app.Controller.saveZoomedDataForMasterChart(newTotalJobsPerHour);
+                masterChart.redraw();
+
+                // redraw detailChart
+                app.View.setChartTitle(app.Utils.msFormat(zoomedMinStartTime), app.Utils.msFormat(zoomedMaxStartTime), zoomedDataForDetailChart_Values.length);
+                // app.View.setLegendSymbolSize(app.Configuration.legendSymbolSize);
+                detailChart.redraw();
+                detailChart.hideLoading();
+
+                // redraw durationChart
+                app.Controller.reinitDataForDurationChart(app.Model.visualization.zoomedDataForDetailChart.flatMap(group =>
+                    group.data.map(item => ({
+                        ...item,
+                        name: group.name
+                    }))
+                ));
+                app.View.createDurationChart();
+
+                // redraw dataTable
+                app.View.resetDataTable();
+                app.View.drawDataTable(app.Model.visualization.zoomedDataForDetailChart);
+            } else {
+                app.View.setChartTitle(null, null, 0);
+                app.View.resetDataTable();
+            }
+        },
+
+        reinitDataForDetailChart: function () {
+            app.Model.visualization.dataForDetailChart = app.Model.initDataForDetailChart(app.Model.data_filtered);
+            let currentZoomedDataForDetailChart = JSON.parse(JSON.stringify(app.Model.visualization.zoomedDataForDetailChart)),
+                currentDetailData = currentZoomedDataForDetailChart.map(series => series.data).reduce((accumulator, currentArray) => {
+                    return accumulator.concat(currentArray);
+                }, []),
+                currentJobIDs = currentDetailData.map(obj => obj.job_id);
+
+            app.Model.visualization.zoomedDataForDetailChart = JSON.parse(JSON.stringify(app.Model.visualization.dataForDetailChart.map(series => {
+                return { ...series, data: series.data.filter((obj) => currentJobIDs.includes(obj.job_id)) }
+            })));
+        },
+
+        reinitDataForDurationChart: function (newData = app.Model.data_filtered) {
+            app.Model.visualization.dataForDurationChart = app.Model.initDataForDurationChart(newData);
+        },
+
+        reset: function () {
+            app.Model.reset();
+            app.View.reset();
+            this.initiateApp();
+        }
+    };
+
+    // Start the application
+    this.StartApp = function () {
+        this.Controller.initiateApp();
+    };
+};
