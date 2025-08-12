@@ -1,4 +1,5 @@
-# Django-приложение для графического отображения данных из Dirac
+# Django application for displaying DIRAC job execution data
+The application contains functions for filtering data by attributes, as well as the time interval for performing tasks.
 <table>
   <tr>
     <td>
