@@ -4,6 +4,8 @@ from pprint import pprint as pp
 import time
 from random import randint
 
+from io import StringIO
+
 from django.conf import settings
 from django.shortcuts import render
 from django.http import JsonResponse, HttpResponse
@@ -28,21 +30,30 @@ def get_filters(request):
     print(filters)
     return JsonResponse({'filters': filters})
 
-cash = None
+# cash = None
 def get_all_data(request):
-    global cash
-    if cash != None:
-        return cash
+    # global cash
+    # if cash != None:
+    #     return cash
 
     df = pd.read_csv(settings.CSV_DATA_PATH)
     df['id'] = df.index
 
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename=filtered_data.csv'
-    df.to_csv(path_or_buf=response, index=False)
-    if cash == None:
-        cash = response
-    return cash
+    csv_buffer = StringIO()
+    df.to_csv(path_or_buf=csv_buffer, index=False)
+
+    return HttpResponse(
+        csv_buffer.getvalue(),
+        content_type='text/plain; charset=utf-8'
+    )
+
+    # response = HttpResponse(content_type='text/csv')
+    # response['Content-Disposition'] = 'attachment; filename=filtered_data.csv'
+    # df.to_csv(path_or_buf=response, index=False)
+    # # if cash == None:
+    # #     cash = response
+    # # return cash
+    # return response
 
 
 def get_data_by_filters(request):

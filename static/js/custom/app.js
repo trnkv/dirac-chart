@@ -110,6 +110,7 @@ var App = function () {
                 dynamicTyping: true,
                 fastMode: true,
             }).data;
+            // this.base_data = this.dataCSV;
 
             this.base_data.forEach(obj => {
                 obj['start_time'] = new Date(obj['start_time']).getTime();
@@ -164,11 +165,17 @@ var App = function () {
                 },
                 url: "get_all_data",
                 async: true,
+                dataType: "text", // получаем как текст
+                cache: false,     // отключаем кеширование на клиенте
             }).done(function (response) {
+                // console.log(response);
                 app.Model.dataCSV = response;
                 app.Model.done_handler = done_handler;
                 $("#spinner p").text("process");
                 setTimeout(app.Model.processData, 100);
+            }).fail(function (xhr, status, error) {
+                console.error("Ошибка загрузки CSV:", error);
+                $("#spinner p").text("CSV loading error");
             });
         },
 
@@ -248,102 +255,95 @@ var App = function () {
         },
 
         initDataForMasterChart: function (inputData) {
-            const start = Date.now();
-            let result = {},
-                allData = inputData.slice(),
-                jobs = [];
+            const startTime = performance.now();
 
-            allData.forEach(obj => {
-                var y = 'wall_time' in obj ? 'wall_time' : 'y';
-                // var y = 'real_wt';
-                jobs.push([obj.start_time, Math.trunc(obj.start_time + obj[y] * 1000)]);
+            // Создаём массив пар [start, stop]
+            const jobs = inputData.map(obj => {
+                const y = obj.wall_time ?? obj.y;
+                return [obj.start_time, Math.trunc(obj.start_time + y * 1000)];
             });
 
-            jobs.sort(function (a, b) { return a[0] - b[0] });
+            // Сортируем по старту один раз
+            jobs.sort((a, b) => a[0] - b[0]);
 
-            let running_at_time = {};
-            let stop_times = [];
+            const running_at_time = {};
+            const stop_times = new MinHeap(); // наша куча (см. ниже реализацию)
             let current = 0;
 
             for (let i = 0; i < jobs.length; i++) {
-                const start = jobs[i][0];
-                const stop = jobs[i][1];
+                const [start, stop] = jobs[i];
 
-                while ((stop_times.length !== 0) && (start > stop_times[0])) {
-                    current -= 1;
-                    running_at_time[stop_times[0]] = current;
-                    stop_times.shift();
+                // Убираем все завершившиеся задачи
+                while (stop_times.size() > 0 && start > stop_times.peek()) {
+                    current--;
+                    running_at_time[stop_times.pop()] = current;
                 }
 
-                current += 1;
+                current++;
                 running_at_time[start] = current;
                 stop_times.push(stop);
-                stop_times.sort(function (a, b) { return a - b });
             }
 
-            for (let i = 0; i < stop_times.length; i++) {
-                const stop = stop_times[i];
-                current -= 1;
-                running_at_time[stop] = current;
+            // Обрабатываем оставшиеся stop_times
+            while (stop_times.size() > 0) {
+                current--;
+                running_at_time[stop_times.pop()] = current;
             }
 
-            result = Object.entries(running_at_time);
-            result = result.map(pair => [parseInt(pair[0]), pair[1]]);
-            result.sort(function (a, b) { return a[0] - b[0] });
+            // Преобразуем в массив и сортируем один раз
+            let result = Object.entries(running_at_time)
+                .map(([t, val]) => [parseInt(t), val])
+                .sort((a, b) => a[0] - b[0]);
 
-            if (result.length > 0) {
-                let current_hour_start = Math.floor(result[0][0] / 60 / 60 / 1000) * 60 * 60 * 1000,
-                    current_hour_end = current_hour_start + 60 * 60 * 1000,
-                    current_hour_max_value = 0,
-                    result_data = {};
+            if (result.length === 0) return result;
 
-                for (let i = 0; i < result.length; i++) {
-                    if (result[i][0] < current_hour_end) {
-                        current_hour_max_value = Math.max(result[i][1], current_hour_max_value);
-                    } else {
-                        current_hour_start = Math.floor(result[i][0] / 60 / 60 / 1000) * 60 * 60 * 1000;
-                        current_hour_end = current_hour_start + 60 * 60 * 1000;
-                        current_hour_max_value = result[i][1];
-                    }
-                    result_data[current_hour_start] = current_hour_max_value;
+            // Построение агрегированных значений по часам
+            let current_hour_start = Math.floor(result[0][0] / 3600000) * 3600000;
+            let current_hour_end = current_hour_start + 3600000;
+            let current_hour_max_value = 0;
+            const result_data_map = {};
+
+            for (let i = 0; i < result.length; i++) {
+                if (result[i][0] < current_hour_end) {
+                    current_hour_max_value = Math.max(result[i][1], current_hour_max_value);
+                } else {
+                    current_hour_start = Math.floor(result[i][0] / 3600000) * 3600000;
+                    current_hour_end = current_hour_start + 3600000;
+                    current_hour_max_value = result[i][1];
                 }
+                result_data_map[current_hour_start] = current_hour_max_value;
+            }
 
-                result_data = Object.keys(result_data).map((key) => [Number(key), result_data[key]]);
+            let result_data = Object.entries(result_data_map)
+                .map(([k, v]) => [Number(k), v])
+                .sort((a, b) => a[0] - b[0]);
 
-                //IGOR
-                //This code is supposed to add 0 values. Issue appears when we suddensly stop jobs and suddenly start jobs. In that case in master chart there will be a line not equal to 0 when it should be 0.
-                var min_time = result_data[0][0];
-                var max_time = result_data[result_data.length - 1][0];
-                result_data.unshift([min_time - 3600000, 0]);
-                result_data.push([max_time + 3600000, 0]);
+            // Добавляем точки с нулями
+            const min_time = result_data[0][0];
+            const max_time = result_data[result_data.length - 1][0];
+            result_data.unshift([min_time - 3600000, 0]);
+            result_data.push([max_time + 3600000, 0]);
 
-                var index = 1;
-                var lastTime = result_data[0][0];
-                while (index < result_data.length) {
-                    if (result_data[index][0] - 3600000 == lastTime) {
-                        lastTime = result_data[index][0];
-                        index += 1;
-                        continue;
-                    }
-                    if (result_data[index][0] - 3600000 > lastTime) {
-                        result_data.splice(index, 0, [lastTime + 3600000, 0]);
-                        lastTime = lastTime + 3600000;
-                        index += 1;
-                        if (result_data[index][0] - 3600000 != lastTime) {
-                            result_data.splice(index, 0, [result_data[index][0] - 3600000, 0]);
-                            lastTime = result_data[index][0] - 3600000;
-                            index += 1;
-                        }
-                        continue;
+            let index = 1;
+            let lastTime = result_data[0][0];
+            while (index < result_data.length) {
+                if (result_data[index][0] - 3600000 === lastTime) {
+                    lastTime = result_data[index][0];
+                    index++;
+                } else if (result_data[index][0] - 3600000 > lastTime) {
+                    result_data.splice(index, 0, [lastTime + 3600000, 0]);
+                    lastTime += 3600000;
+                    index++;
+                    if (result_data[index][0] - 3600000 !== lastTime) {
+                        result_data.splice(index, 0, [result_data[index][0] - 3600000, 0]);
+                        lastTime = result_data[index][0] - 3600000;
+                        index++;
                     }
                 }
-
-                const end = Date.now();
-                console.log(`Time to initDataForMasterChart: ${end - start} ms`);
-                //IGOR
-                return result_data;
             }
-            return result;
+
+            console.log(`initDataForMasterChart выполнена за ${(performance.now() - startTime).toFixed(2)} ms`);
+            return result_data;
         },
 
         initDataForDurationChart: function (inputData) {
@@ -387,11 +387,19 @@ var App = function () {
 
         setVisualizationData: function (data) {
             this.data_filtered = data;
+            let start = Date.now();
             this.visualization.dataForDetailChart = this.initDataForDetailChart(data);
+            console.log(`Time to initDataForDetailChart: ${Date.now() - start} ms`);
             this.visualization.dataForMasterChart = this.initDataForMasterChart(data);
+            start = Date.now();
             this.visualization.zoomedDataForDetailChart = JSON.parse(JSON.stringify(this.visualization.dataForDetailChart));
+            console.log(`Time to zoomedDataForDetailChart: ${Date.now() - start} ms`);
+            start = Date.now();
             this.visualization.zoomedDataForMasterChart = JSON.parse(JSON.stringify(this.visualization.dataForMasterChart));
+            console.log(`Time to zoomedDataForMasterChart: ${Date.now() - start} ms`);
+            start = Date.now();
             this.visualization.dataForDurationChart = this.initDataForDurationChart(data);
+            console.log(`Time to dataForDurationChart: ${Date.now() - start} ms`);
         }
     };
 
@@ -460,7 +468,7 @@ var App = function () {
             $('#btn_select_all_statuses').prop("checked", "checked");
             $('#btn_select_all_job_groups').prop("checked", "checked");
 
-            $('#btn_load_all').click(function () {
+            $('#btn_load_all').on('click', function () {
                 $('#btn_select_all_sites').trigger('click');
                 $('#btn_select_all_owners').trigger('click');
                 $('#btn_select_all_statuses').trigger('click');
@@ -469,51 +477,51 @@ var App = function () {
                 app.Controller.recordRecentAction($(this));
             });
 
-            $('#btn_load_filtered').click(function () {
+            $('#btn_load_filtered').on('click', function () {
                 app.Controller.loadDataByFilters();
                 app.Controller.recordRecentAction($(this));
             });
 
-            $('#btn_reset').click(function () {
+            $('#btn_reset').on('click', function () {
                 app.Controller.reset();
             });
 
-            $('#btn_select_all_sites').click(function () {
+            $('#btn_select_all_sites').on('click', function () {
                 app.View.checkAllCheckboxes("site");
                 app.Controller.recordRecentAction($(this));
             });
 
-            $('#btn_select_none_sites').click(function () {
+            $('#btn_select_none_sites').on('click', function () {
                 app.View.check_none("site");
                 app.Controller.recordRecentAction($(this));
             });
 
-            $('#btn_select_all_owners').click(function () {
+            $('#btn_select_all_owners').on('click', function () {
                 app.View.checkAllCheckboxes("owner");
                 app.Controller.recordRecentAction($(this));
             });
 
-            $('#btn_select_none_owners').click(function () {
+            $('#btn_select_none_owners').on('click', function () {
                 app.View.check_none("owner");
                 app.Controller.recordRecentAction($(this));
             });
 
-            $('#btn_select_all_statuses').click(function () {
+            $('#btn_select_all_statuses').on('click', function () {
                 app.View.checkAllCheckboxes("status");
                 app.Controller.recordRecentAction($(this));
             });
 
-            $('#btn_select_none_statuses').click(function () {
+            $('#btn_select_none_statuses').on('click', function () {
                 app.View.check_none("status");
                 app.Controller.recordRecentAction($(this));
             });
 
-            $('#btn_select_all_job_groups').click(function () {
+            $('#btn_select_all_job_groups').on('click', function () {
                 $("#job_groups").val(app.Model.filters['job_group'].map(g => "job_group:" + g)).trigger('change');
                 app.Controller.recordRecentAction($(this));
             });
 
-            $('#btn_select_none_job_groups').click(function () {
+            $('#btn_select_none_job_groups').on('click', function () {
                 $("#job_groups").val(null).trigger('change');
                 app.Controller.recordRecentAction($(this));
             });
@@ -700,11 +708,9 @@ var App = function () {
             $('#datatable_wrapper').hide();
         },
 
-        drawVisualization: function () {
+        drawCharts: function () {
             this.createMasterDetailChart();
             this.createDurationChart();
-            this.resetDataTable();
-            this.drawDataTable(app.Model.visualization.zoomedDataForDetailChart);
             $('#master-container').css({
                 'top': app.Model.visualization.detailChart.chartHeight + "px"
             });
@@ -1128,10 +1134,21 @@ var App = function () {
         },
 
         redrawAllCharts: function () {
+            let start = Date.now();
             app.Controller.reinitDataForDetailChart();
+            console.log(`Time to reinitDataForDetailChart: ${Date.now() - start} ms`);
+
+            start = Date.now();
             app.Controller.reinitDataForDurationChart();
+            console.log(`Time to reinitDataForDurationChart: ${Date.now() - start} ms`);
+
+            start = Date.now();
             this.createMasterDetailChart();
+            console.log(`Time to createMasterDetailChart: ${Date.now() - start} ms`);
+
+            start = Date.now();
             this.createDurationChart();
+            console.log(`Time to createDurationChart: ${Date.now() - start} ms`);
         },
 
         setChartTitle: function (periodStart, periodEnd, pointsCount) {
@@ -1171,9 +1188,9 @@ var App = function () {
         },
 
         loadAllData: function () {
-            app.View.showPreloader();
             app.View.resetFilters();
             app.View.drawFilters(app.Model.filters);
+            app.View.showPreloader();
             app.Model.getAllData(this.dataLoaded);
         },
 
@@ -1196,7 +1213,8 @@ var App = function () {
         callDrawer: function () {
             const data = app.Model.data_filtered;
             if (data.length > 0) {
-                app.View.drawVisualization();
+                app.View.drawCharts();
+                app.View.drawDataTable(app.Model.visualization.zoomedDataForDetailChart);
             } else {
                 $('#masterdetail-container').html('<h4 class="text-primary">There is no data on this request</h4>\
                 <p>Change the request parameters and try again</p>');
@@ -1295,7 +1313,6 @@ var App = function () {
             app.Model.y_value = y_value;
             if (app.Model.visualization.zoomedDataForDetailChart) {
                 app.View.redrawAllCharts();
-                app.View.resetDataTable();
                 app.View.drawDataTable(app.Model.visualization.zoomedDataForDetailChart);
             }
         },
@@ -1304,7 +1321,6 @@ var App = function () {
             app.Model.colorBy = colorBy_value;
             if (app.Model.visualization.zoomedDataForDetailChart) {
                 app.View.redrawAllCharts();
-                app.View.resetDataTable();
                 app.View.drawDataTable(app.Model.visualization.zoomedDataForDetailChart);
             }
         },
@@ -1396,7 +1412,6 @@ var App = function () {
                 app.View.createDurationChart();
 
                 // redraw dataTable
-                app.View.resetDataTable();
                 app.View.drawDataTable(app.Model.visualization.zoomedDataForDetailChart);
             } else {
                 app.View.setChartTitle(null, null, 0);
@@ -1405,16 +1420,23 @@ var App = function () {
         },
 
         reinitDataForDetailChart: function () {
-            app.Model.visualization.dataForDetailChart = app.Model.initDataForDetailChart(app.Model.data_filtered);
-            let currentZoomedDataForDetailChart = JSON.parse(JSON.stringify(app.Model.visualization.zoomedDataForDetailChart)),
-                currentDetailData = currentZoomedDataForDetailChart.map(series => series.data).reduce((accumulator, currentArray) => {
-                    return accumulator.concat(currentArray);
-                }, []),
-                currentJobIDs = currentDetailData.map(obj => obj.job_id);
+            // Пересоздаём полные данные для детализации
+            const dataForDetailChart = app.Model.initDataForDetailChart(app.Model.data_filtered);
+            app.Model.visualization.dataForDetailChart = dataForDetailChart;
 
-            app.Model.visualization.zoomedDataForDetailChart = JSON.parse(JSON.stringify(app.Model.visualization.dataForDetailChart.map(series => {
-                return { ...series, data: series.data.filter((obj) => currentJobIDs.includes(obj.job_id)) }
-            })));
+            // Получаем все job_id из текущего "зумированного" набора
+            const currentDetailData = app.Model.visualization.zoomedDataForDetailChart
+                .flatMap(series => series.data);
+
+            const currentJobIDsSet = new Set(currentDetailData.map(obj => obj.job_id));
+
+            // Фильтруем новые данные, оставляя только те job_id, что есть в currentJobIDsSet
+            app.Model.visualization.zoomedDataForDetailChart = dataForDetailChart.map(series => ({
+                ...series,
+                data: series.data
+                    .filter(obj => currentJobIDsSet.has(obj.job_id))
+                    .map(obj => ({ x: obj.x, y: obj.y, job_id: obj.job_id }))
+            }));
         },
 
         reinitDataForDurationChart: function (newData = app.Model.data_filtered) {

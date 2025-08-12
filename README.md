@@ -7,13 +7,8 @@
     <td>
       <img src="/screenshots/2.png" />
     </td>
-  </tr>
-  <tr>
     <td>
-    <img src="/screenshots/3.png" />
-    </td>
-    <td>
-    <img src="/screenshots/4.png" />
+      <img src="/screenshots/3.png" />
     </td>
   </tr>
 </table>
