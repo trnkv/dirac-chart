@@ -2,14 +2,15 @@ from datetime import datetime
 import pandas as pd
 from pprint import pprint as pp
 import time
+import gzip
+import io
 from random import randint
-
-from io import StringIO
 
 from django.conf import settings
 from django.shortcuts import render
 from django.http import JsonResponse, HttpResponse
 
+from .global_data import GlobalData
 
 def index(request):
     #return render(request, 'index.html', {})
@@ -17,44 +18,26 @@ def index(request):
 
 
 def get_filters(request):
-    df = pd.read_csv(settings.CSV_DATA_PATH)
-    df = df.fillna("undefined")
-    filters = {
-        #"hostname": df['hostname'].unique().tolist(),
-        #"model": df['cpu_model'].unique().tolist(),
-        "site": sorted(df['site'].unique().tolist()),
-        "status": sorted(df['status'].unique().tolist()),
-        "owner": sorted(df['owner'].unique().tolist()),
-        "job_group": sorted(df['job_group'].unique().tolist()),
-    }
+    filters = GlobalData.get_filters()
     print(filters)
     return JsonResponse({'filters': filters})
 
-# cash = None
 def get_all_data(request):
-    # global cash
-    # if cash != None:
-    #     return cash
+    df = GlobalData.get_df().copy(deep=True)
+    print("Get all Data " + str(len(df)))
+    buffer = io.BytesIO()
+    with gzip.GzipFile(fileobj=buffer, mode='wb') as f:
+        csv_buffer = io.StringIO()
+        df.to_csv(csv_buffer, index=False)
+        f.write(csv_buffer.getvalue().encode('utf-8'))
+    buffer.seek(0)
+    print("Data written to buffer")
+    response = HttpResponse(buffer, content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = 'inline; filename="data.csv"'
+    response['Content-Encoding'] = 'gzip'
+    print("Sending response")
 
-    df = pd.read_csv(settings.CSV_DATA_PATH)
-    df['id'] = df.index
-
-    csv_buffer = StringIO()
-    df.to_csv(path_or_buf=csv_buffer, index=False)
-
-    return HttpResponse(
-        csv_buffer.getvalue(),
-        content_type='text/plain; charset=utf-8'
-    )
-
-    # response = HttpResponse(content_type='text/csv')
-    # response['Content-Disposition'] = 'attachment; filename=filtered_data.csv'
-    # df.to_csv(path_or_buf=response, index=False)
-    # # if cash == None:
-    # #     cash = response
-    # # return cash
-    # return response
-
+    return response
 
 def get_data_by_filters(request):
     filters = request.GET.getlist('filters[]')
@@ -69,8 +52,7 @@ def get_data_by_filters(request):
     start_datetime_iso = start_datetime.isoformat()
     end_datetime_iso = end_datetime.isoformat()
 
-    df = pd.read_csv(settings.CSV_DATA_PATH)
-    df = df.fillna("undefined")
+    df = GlobalData.get_df().copy(deep=True)
     df['start_time'] = pd.to_datetime(df['start_time'])
     df = df[df["start_time"].between(start_datetime_iso, end_datetime_iso)]
     df = df.sort_values(by='start_time', ascending=True)
@@ -89,13 +71,16 @@ def get_data_by_filters(request):
 
     pp("df after filtering: " + str(len(df)))
 
-    # df['id'] = df.index
-    # df['x'] = df['start_time']  # это делается на клиентской стороне с учетом локальной тайм-зоны
-    #df['y'] = df['wall_time']
-
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename=filtered_data.csv'
-    df.to_csv(path_or_buf=response, index=False)
-    print('returning response...')
+    buffer = io.BytesIO()
+    with gzip.GzipFile(fileobj=buffer, mode='wb') as f:
+        csv_buffer = io.StringIO()
+        df.to_csv(csv_buffer, index=False)
+        f.write(csv_buffer.getvalue().encode('utf-8'))
+    buffer.seek(0)
+    print("Data written to buffer")
+    response = HttpResponse(buffer, content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = 'inline; filename="data.csv"'
+    response['Content-Encoding'] = 'gzip'
+    print("Sending response")
     return response
 
