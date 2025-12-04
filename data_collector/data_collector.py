@@ -14,7 +14,8 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 SQL_QUERRY = """
-select J.JobID as id, J.Owner as owner, J.JobName as job_name, J.JobGroup as job_group, J.Site as site, J.StartExecTime as start_time, J.EndExecTime as end_time, J.Status as status, JP.Value as cpu_norm,  JPCT.Value as cpu_time, JPWC.Value as wall_time, JPTT.Value as total_time, JPHN.Value as hostname, JPMN.Value as model FROM Jobs as J  LEFT JOIN JobParameters as JP using (JobID)  LEFT JOIN JobParameters as JPCT using (JobID)  LEFT JOIN JobParameters as JPWC using (JobID) LEFT JOIN JobParameters as JPTT using (JobID) LEFT JOIN JobParameters as JPHN using (JobID) LEFT JOIN JobParameters as JPMN using (JobID) where JP.Name='CPUNormalizationFactor' and  JPCT.Name='NormCPUTime(s)' and JPWC.Name='WallClockTime(s)' and JPTT.Name='TotalCPUTime(s)' and JPHN.Name='HostName' and JPMN.Name='ModelName';"""
+select J.JobID as id, J.Owner as owner, J.JobName as job_name, J.JobGroup as job_group, J.Site as site, J.StartExecTime as start_time, J.EndExecTime as end_time, J.Status as status, JP.Value as cpu_norm,  JPCT.Value as cpu_time, JPWC.Value as wall_time, 
+JPTT.Value as total_time, JPHN.Value as hostname, JPMN.Value as model, JPM.Value as memory, JPMU.Value as memory_used FROM Jobs as J  LEFT JOIN JobParameters as JP using (JobID)  LEFT JOIN JobParameters as JPCT using (JobID)  LEFT JOIN JobParameters as JPWC using (JobID) LEFT JOIN JobParameters as JPTT using (JobID) LEFT JOIN JobParameters as JPHN using (JobID) LEFT JOIN JobParameters as JPMN using (JobID) LEFT JOIN JobParameters as JPM using (JobID) LEFT JOIN JobParameters as JPMU using (JobID) where JP.Name='CPUNormalizationFactor' and  JPCT.Name='NormCPUTime(s)' and JPWC.Name='WallClockTime(s)' and JPTT.Name='TotalCPUTime(s)' and JPHN.Name='HostName' and JPMN.Name='ModelName' and JPM.Name='Memory(kB)' and JPMU.Name='MemoryUsed(kb)';"""
 
 CONFIG_PATH = "/opt/dirac-job-analytics/config.json"
 
@@ -40,8 +41,8 @@ dtypes = {
   'total_time': int,
   'hostname': str,
   'cpu_model': str,
- # 'memory': float,
- # 'memory_used': float
+  'memory': float,
+  'memory_used': float
 }
 
 
@@ -89,6 +90,7 @@ def get_data_from_dirac_db():
 def convert_data_to_pandas(data):
   result = []
   for row in data:
+    print(row)
     job_info = {
       "job_id": int(row[0]),
       "owner": row[1],
@@ -104,8 +106,8 @@ def convert_data_to_pandas(data):
       "total_time": int(float(row[11])),
       "hostname": row[12].decode('UTF-8'),
       "cpu_model": row[13].decode('UTF-8'),
-#      "memory": float(row[14]) if "kB" not in str(row[14]) else float(row[14][:-2])*1000,
-#      "memory_used": float(row[15]),
+      "memory": float(row[14]) if "kB" not in str(row[14]) else float(row[14][:-2])*1000,
+      "memory_used": float(row[15]),
     }
     result.append(job_info)
 
@@ -125,8 +127,8 @@ def filter_dataframe(df):
 def load_csv_database():
   if os.path.isfile(config['csv_data_path']):
     df_old = pd.read_csv(config['csv_data_path'], dtype=dtypes)
-    df_old['start_time'] = pd.to_datetime(df_old['start_time'], utc=True)
-    df_old['end_time'] = pd.to_datetime(df_old['end_time'], utc=True)
+    df_old['start_time'] = pd.to_datetime(df_old['start_time'], utc=True, format='ISO8601')
+    df_old['end_time'] = pd.to_datetime(df_old['end_time'], utc=True, format='ISO8601')
     
     info("Rows in csv:       " + str(len(df_old)))
     return df_old
